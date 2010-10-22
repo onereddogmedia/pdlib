@@ -33,6 +33,7 @@ extern "C" {
 #define LO_UDP     0x1
 #define LO_UNIX    0x2
 #define LO_TCP     0x4
+#define LO_DIRECT  0x8
 
 /* an internal value, ignored in transmission but check against LO_MARKER in the
  * argument list. Used to do primitive bounds checking */
@@ -41,24 +42,24 @@ extern "C" {
 #define LO_ARGS_END LO_MARKER_A, LO_MARKER_B
 
 #define lo_message_add_varargs(msg, types, list) \
-    lo_message_add_varargs_internal(msg, types, list, __FILE__, __LINE__)
+    lo_message_add_varargs_internal(msg, types, list, "", __LINE__)
 
 #ifdef __GNUC__
 
 #define lo_message_add(msg, types...)                         \
-    lo_message_add_internal(msg, __FILE__, __LINE__, types,   \
+    lo_message_add_internal(msg, "", __LINE__, types,   \
                             LO_MARKER_A, LO_MARKER_B)
 
 #define lo_send(targ, path, types...) \
-        lo_send_internal(targ, __FILE__, __LINE__, path, types, \
+        lo_send_internal(targ, "", __LINE__, path, types, \
 			 LO_MARKER_A, LO_MARKER_B)
 
 #define lo_send_timestamped(targ, ts, path, types...) \
-        lo_send_timestamped_internal(targ, __FILE__, __LINE__, ts, path, \
+        lo_send_timestamped_internal(targ, "", __LINE__, ts, path, \
 		       	             types, LO_MARKER_A, LO_MARKER_B)
 
 #define lo_send_from(targ, from, ts, path, types...) \
-        lo_send_from_internal(targ, from, __FILE__, __LINE__, ts, path, \
+        lo_send_from_internal(targ, from, "", __LINE__, ts, path, \
 		       	             types, LO_MARKER_A, LO_MARKER_B)
 
 #else

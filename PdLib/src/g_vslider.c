@@ -236,12 +236,12 @@ void vslider_check_height(t_vslider *x, int h)
         x->x_val = x->x_pos;
     }
     if(x->x_lin0_log1)
-        x->x_k = log(x->x_max/x->x_min)/(double)(x->x_gui.x_h - 1);
+        x->x_k = logf(x->x_max/x->x_min)/(float32_pd)(x->x_gui.x_h - 1);
     else
-        x->x_k = (x->x_max - x->x_min)/(double)(x->x_gui.x_h - 1);
+        x->x_k = (x->x_max - x->x_min)/(float32_pd)(x->x_gui.x_h - 1);
 }
 
-void vslider_check_minmax(t_vslider *x, double min, double max)
+void vslider_check_minmax(t_vslider *x, float32_pd min, float32_pd max)
 {
     if(x->x_lin0_log1)
     {
@@ -265,9 +265,9 @@ void vslider_check_minmax(t_vslider *x, double min, double max)
     else
         x->x_gui.x_isa.x_reverse = 0;
     if(x->x_lin0_log1)
-        x->x_k = log(x->x_max/x->x_min)/(double)(x->x_gui.x_h - 1);
+        x->x_k = logf(x->x_max/x->x_min)/(float32_pd)(x->x_gui.x_h - 1);
     else
-        x->x_k = (x->x_max - x->x_min)/(double)(x->x_gui.x_h - 1);
+        x->x_k = (x->x_max - x->x_min)/(float32_pd)(x->x_gui.x_h - 1);
 }
 
 static void vslider_properties(t_gobj *z, t_glist *owner)
@@ -298,12 +298,12 @@ static void vslider_properties(t_gobj *z, t_glist *owner)
 
 static void vslider_bang(t_vslider *x)
 {
-    double out;
+    float32_pd out;
 
     if(x->x_lin0_log1)
-        out = x->x_min*exp(x->x_k*(double)(x->x_val)*0.01);
+        out = x->x_min*expf(x->x_k*(float32_pd)(x->x_val)*0.01);
     else
-        out = (double)(x->x_val)*0.01*x->x_k + x->x_min;
+        out = (float32_pd)(x->x_val)*0.01*x->x_k + x->x_min;
     if((out < 1.0e-10)&&(out > -1.0e-10))
         out = 0.0;
 
@@ -317,8 +317,8 @@ static void vslider_dialog(t_vslider *x, t_symbol *s, int argc, t_atom *argv)
     t_symbol *srl[3];
     int w = (int)atom_getintarg(0, argc, argv);
     int h = (int)atom_getintarg(1, argc, argv);
-    double min = (double)atom_getfloatarg(2, argc, argv);
-    double max = (double)atom_getfloatarg(3, argc, argv);
+    float32_pd min = (float32_pd)atom_getfloatarg(2, argc, argv);
+    float32_pd max = (float32_pd)atom_getfloatarg(3, argc, argv);
     int lilo = (int)atom_getintarg(4, argc, argv);
     int steady = (int)atom_getintarg(17, argc, argv);
     int sr_flags;
@@ -402,7 +402,7 @@ static int vslider_newclick(t_gobj *z, struct _glist *glist,
 
 static void vslider_set(t_vslider *x, t_floatarg f)
 {
-    double g;
+    float32_pd g;
 
     if(x->x_gui.x_isa.x_reverse)    /* bugfix */
     {
@@ -419,7 +419,7 @@ static void vslider_set(t_vslider *x, t_floatarg f)
             f = x->x_min;
     }
     if(x->x_lin0_log1)
-        g = log(f/x->x_min)/x->x_k;
+        g = logf(f/x->x_min)/x->x_k;
     else
         g = (f - x->x_min) / x->x_k;
     x->x_val = (int)(100.0*g + 0.49999);
@@ -450,8 +450,8 @@ static void vslider_pos(t_vslider *x, t_symbol *s, int ac, t_atom *av)
 
 static void vslider_range(t_vslider *x, t_symbol *s, int ac, t_atom *av)
 {
-    vslider_check_minmax(x, (double)atom_getfloatarg(0, ac, av),
-                         (double)atom_getfloatarg(1, ac, av));
+    vslider_check_minmax(x, (float32_pd)atom_getfloatarg(0, ac, av),
+                         (float32_pd)atom_getfloatarg(1, ac, av));
 }
 
 static void vslider_color(t_vslider *x, t_symbol *s, int ac, t_atom *av)
@@ -481,7 +481,7 @@ static void vslider_log(t_vslider *x)
 static void vslider_lin(t_vslider *x)
 {
     x->x_lin0_log1 = 0;
-    x->x_k = (x->x_max - x->x_min)/(double)(x->x_gui.x_h - 1);
+    x->x_k = (x->x_max - x->x_min)/(float32_pd)(x->x_gui.x_h - 1);
 }
 
 static void vslider_init(t_vslider *x, t_floatarg f)
@@ -510,7 +510,7 @@ static void *vslider_new(t_symbol *s, int argc, t_atom *argv)
     int w=IEM_GUI_DEFAULTSIZE, h=IEM_SL_DEFAULTSIZE;
     int lilo=0, f=0, ldx=0, ldy=-9;
     int fs=10, v=0, steady=1;
-    double min=0.0, max=(double)(IEM_SL_DEFAULTSIZE-1);
+    float32_pd min=0.0, max=(float32_pd)(IEM_SL_DEFAULTSIZE-1);
     char str[144];
 
     iem_inttosymargs(&x->x_gui.x_isa, 0);
@@ -528,8 +528,8 @@ static void *vslider_new(t_symbol *s, int argc, t_atom *argv)
     {
         w = (int)atom_getintarg(0, argc, argv);
         h = (int)atom_getintarg(1, argc, argv);
-        min = (double)atom_getfloatarg(2, argc, argv);
-        max = (double)atom_getfloatarg(3, argc, argv);
+        min = (float32_pd)atom_getfloatarg(2, argc, argv);
+        max = (float32_pd)atom_getfloatarg(3, argc, argv);
         lilo = (int)atom_getintarg(4, argc, argv);
         iem_inttosymargs(&x->x_gui.x_isa, atom_getintarg(5, argc, argv));
         iemgui_new_getnames(&x->x_gui, 6, argv);

@@ -386,56 +386,67 @@ static int send_data(lo_address a, lo_server from, char *data, const size_t data
 	return -1;
     }
     
-    // Resolve the destination address, if not done already
-    if (!a->ai) {
-	ret = resolve_address( a );
-	if (ret) return ret;
-    }
-
-    // Re-use existing socket?
-    if (from) {
-	sock = from->sockets[0].fd;
-    } else if (a->protocol == LO_UDP && lo_client_sockets.udp!=-1) {
-	sock = lo_client_sockets.udp;
-    } else {
-	if (a->socket==-1) {
-	    ret = create_socket( a );
-	    if (ret) return ret;
-    	}
-	sock = a->socket;
-    }
-
-
-
-    // Send Length of the following data
-    if (a->protocol == LO_TCP) {
-	int32_t size = htonl(data_len); 
-	ret = send(sock, &size, sizeof(size), MSG_NOSIGNAL); 
-    }
-    
-    // Send the data
-    if (a->protocol == LO_UDP) {
-        if (a->ttl >= 0) {
-            unsigned char ttl = (unsigned char)a->ttl;
-            setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL,&ttl,sizeof(ttl));
+    // Direct function callback peterj
+    if (a->protocol == LO_DIRECT)
+    {
+        if (a->send)
+        {
+            (a->send)(data, data_len);
         }
-        ret = sendto(sock, data, data_len, MSG_NOSIGNAL,
-                     a->ai->ai_addr, a->ai->ai_addrlen);
-    } else {
-	ret = send(sock, data, data_len, MSG_NOSIGNAL);
     }
+    else
+    {
+        // Resolve the destination address, if not done already
+        if (!a->ai) {
+        ret = resolve_address( a );
+        if (ret) return ret;
+        }
 
-    if (a->protocol == LO_TCP && ret == -1) {
-        close(a->socket);
-        a->socket=-1;
-    }
+        // Re-use existing socket?
+        if (from) {
+        sock = from->sockets[0].fd;
+        } else if (a->protocol == LO_UDP && lo_client_sockets.udp!=-1) {
+        sock = lo_client_sockets.udp;
+        } else {
+        if (a->socket==-1) {
+            ret = create_socket( a );
+            if (ret) return ret;
+            }
+        sock = a->socket;
+        }
 
-    if (ret == -1) {
-	a->errnum = geterror();
-	a->errstr = NULL;
-    } else {
-	a->errnum = 0;
-	a->errstr = NULL;
+
+
+        // Send Length of the following data
+        if (a->protocol == LO_TCP) {
+        int32_t size = htonl(data_len); 
+        ret = send(sock, &size, sizeof(size), MSG_NOSIGNAL); 
+        }
+        
+        // Send the data
+        if (a->protocol == LO_UDP) {
+            if (a->ttl >= 0) {
+                unsigned char ttl = (unsigned char)a->ttl;
+                setsockopt(sock,IPPROTO_IP,IP_MULTICAST_TTL,&ttl,sizeof(ttl));
+            }
+            ret = sendto(sock, data, data_len, MSG_NOSIGNAL,
+                         a->ai->ai_addr, a->ai->ai_addrlen);
+        } else {
+        ret = send(sock, data, data_len, MSG_NOSIGNAL);
+        }
+
+        if (a->protocol == LO_TCP && ret == -1) {
+            close(a->socket);
+            a->socket=-1;
+        }
+
+        if (ret == -1) {
+        a->errnum = geterror();
+        a->errstr = NULL;
+        } else {
+        a->errnum = 0;
+        a->errstr = NULL;
+        }
     }
 
     return ret;

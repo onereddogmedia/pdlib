@@ -643,6 +643,12 @@ asdfasdf
 
 int lo_server_wait(lo_server s, int timeout)
 {
+    if (s->recv_ready)
+    {
+        return (s->recv_ready)(s);
+    }
+       
+
     int sched_timeout = lo_server_next_event_delay(s) * 1000;
     int i;
 #ifdef HAVE_SELECT
@@ -717,84 +723,92 @@ int lo_server_recv(lo_server s)
     size_t size;
     double sched_time = lo_server_next_event_delay(s);
     int i;
-#ifdef HAVE_SELECT
-#ifndef HAVE_POLL
-    fd_set ps;
-    struct timeval stimeout;
-    int res,nfds=0;
-#endif
-#endif
 
-again:
-    if (sched_time > 0.01) {
-	if (sched_time > 10.0) {
-	    sched_time = 10.0;
-	}
-
-#ifdef HAVE_POLL
-    for (i=0; i < s->sockets_len; i++) {
-        s->sockets[i].events = POLLIN | POLLPRI | POLLERR | POLLHUP;
-        s->sockets[i].revents = 0;
-    }
-
-	poll(s->sockets, s->sockets_len, (int)(sched_time * 1000.0));
-
-    for (i=0; i < s->sockets_len; i++)
+    if (s->recv)
     {
-        if (   s->sockets[i].revents == POLLERR
-            || s->sockets[i].revents == POLLHUP)
+        (s->recv)((char**)&data, &size);
+    }
+    else
+    {
+    #ifdef HAVE_SELECT
+    #ifndef HAVE_POLL
+        fd_set ps;
+        struct timeval stimeout;
+        int res,nfds=0;
+    #endif
+    #endif
+
+    again:
+        if (sched_time > 0.01) {
+        if (sched_time > 10.0) {
+            sched_time = 10.0;
+        }
+
+    #ifdef HAVE_POLL
+        for (i=0; i < s->sockets_len; i++) {
+            s->sockets[i].events = POLLIN | POLLPRI | POLLERR | POLLHUP;
+            s->sockets[i].revents = 0;
+        }
+
+        poll(s->sockets, s->sockets_len, (int)(sched_time * 1000.0));
+
+        for (i=0; i < s->sockets_len; i++)
+        {
+            if (   s->sockets[i].revents == POLLERR
+                || s->sockets[i].revents == POLLHUP)
+                return 0;
+
+            if (s->sockets[i].revents)
+                break;
+        }
+
+        if (i >= s->sockets_len)
+        {
+            sched_time = lo_server_next_event_delay(s);
+
+            if (sched_time > 0.01)
+                goto again;
+
+            return dispatch_queued(s);
+        }
+    #else
+    #ifdef HAVE_SELECT
+        if(!initWSock()) return 0;
+
+        FD_ZERO(&ps);
+        for (i=0; i < s->sockets_len; i++) {
+            FD_SET(s->sockets[i].fd,&ps);
+            if (s->sockets[i].fd > nfds)
+                nfds = s->sockets[i].fd;
+        }
+
+        stimeout.tv_sec = sched_time;
+        stimeout.tv_usec = (sched_time-stimeout.tv_sec)*1.e6;
+        res = select(nfds+1,&ps,NULL,NULL,&stimeout);
+        if(res == SOCKET_ERROR) {
             return 0;
+        }
 
-        if (s->sockets[i].revents)
-            break;
-    }
+        if(!res) {
+            sched_time = lo_server_next_event_delay(s);
 
-    if (i >= s->sockets_len)
-    {
-        sched_time = lo_server_next_event_delay(s);
+            if (sched_time > 0.01)
+                goto again;
 
-        if (sched_time > 0.01)
-            goto again;
-
+            return dispatch_queued(s);
+        }
+    #endif
+    #endif
+        } else {
         return dispatch_queued(s);
+        }
+        if (s->protocol == LO_TCP) {
+        data = lo_server_recv_raw_stream(s, &size);
+        } else {
+        data = lo_server_recv_raw(s, &size);
+        }
     }
-#else
-#ifdef HAVE_SELECT
-    if(!initWSock()) return 0;
-
-    FD_ZERO(&ps);
-    for (i=0; i < s->sockets_len; i++) {
-        FD_SET(s->sockets[i].fd,&ps);
-        if (s->sockets[i].fd > nfds)
-            nfds = s->sockets[i].fd;
-    }
-
-    stimeout.tv_sec = sched_time;
-    stimeout.tv_usec = (sched_time-stimeout.tv_sec)*1.e6;
-	res = select(nfds+1,&ps,NULL,NULL,&stimeout);
-	if(res == SOCKET_ERROR) {
-	    return 0;
-	}
-
-	if(!res) {
-	    sched_time = lo_server_next_event_delay(s);
-
-	    if (sched_time > 0.01)
-            goto again;
-
-	    return dispatch_queued(s);
-	}
-#endif
-#endif
-    } else {
-	return dispatch_queued(s);
-    }
-    if (s->protocol == LO_TCP) {
-	data = lo_server_recv_raw_stream(s, &size);
-    } else {
-	data = lo_server_recv_raw(s, &size);
-    }
-
+    
     if (!data) {
         return 0;
     }

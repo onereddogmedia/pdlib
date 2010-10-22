@@ -644,17 +644,17 @@ static void gatom_motion(void *z, t_floatarg dx, t_floatarg dy)
     {
         if (x->a_shift)
         {
-            double nval = x->a_atom.a_w.w_float - 0.01 * dy;
-            double trunc = 0.01 * (floor(100. * nval + 0.5));
+            float32_pd nval = x->a_atom.a_w.w_float - 0.01 * dy;
+            float32_pd trunc = 0.01 * (floorf(100. * nval + 0.5));
             if (trunc < nval + 0.0001 && trunc > nval - 0.0001) nval = trunc;
             gatom_clipfloat(x, nval);
         }
         else
         {
-            double nval = x->a_atom.a_w.w_float - dy;
-            double trunc = 0.01 * (floor(100. * nval + 0.5));
+            float32_pd nval = x->a_atom.a_w.w_float - dy;
+            float32_pd trunc = 0.01 * (floorf(100. * nval + 0.5));
             if (trunc < nval + 0.0001 && trunc > nval - 0.0001) nval = trunc;
-            trunc = floor(nval + 0.5);
+            trunc = floorf(nval + 0.5);
             if (trunc < nval + 0.001 && trunc > nval - 0.001) nval = trunc;
             gatom_clipfloat(x, nval);
         }
@@ -849,7 +849,7 @@ static void gatom_vis(t_gobj *z, t_glist *glist, int vis)
             gatom_getwherelabel(x, glist, &x1, &y1);
             sys_vgui("pdtk_text_new .x%lx.c %lx.l %f %f {%s} %d %s\n",
                 glist_getcanvas(glist), x,
-                (double)x1, (double)y1,
+                (float32_pd)x1, (float32_pd)y1,
                 canvas_realizedollar(x->a_glist, x->a_label)->s_name,
                 sys_hostfontsize(glist_getfont(glist)),
                 "black");
@@ -1090,8 +1090,8 @@ static int text_click(t_gobj *z, struct _glist *glist,
         {
             if (doit)
                 pd_vmess(&x->te_pd, clicksym, "fffff",
-                    (double)xpix, (double)ypix,
-                        (double)shift, (double)0, (double)alt);
+                    (float32_pd)xpix, (float32_pd)ypix,
+                        (float32_pd)shift, (float32_pd)0, (float32_pd)alt);
             return (1);
         }
         else return (0);
@@ -1154,9 +1154,9 @@ void text_save(t_gobj *z, t_binbuf *b)
         t_symbol *symto = gatom_escapit(((t_gatom *)x)->a_symto);
         binbuf_addv(b, "ssiiifffsss", gensym("#X"), sel,
             (int)x->te_xpix, (int)x->te_ypix, (int)x->te_width,
-            (double)((t_gatom *)x)->a_draglo,
-            (double)((t_gatom *)x)->a_draghi,
-            (double)((t_gatom *)x)->a_wherelabel,
+            (float32_pd)((t_gatom *)x)->a_draglo,
+            (float32_pd)((t_gatom *)x)->a_draghi,
+            (float32_pd)((t_gatom *)x)->a_wherelabel,
             label, symfrom, symto);
         binbuf_addv(b, ";");
     }           

@@ -669,7 +669,7 @@ static void *wrap_new(void)
 
 static void wrap_float(t_object *x, t_float f)
 {
-    outlet_float(x->ob_outlet, f - floor(f));
+    outlet_float(x->ob_outlet, f - floorf(f));
 }
 
 /* ------------------------  misc ------------------------ */

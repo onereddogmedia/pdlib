@@ -9,6 +9,9 @@ to reset the value.
 */
 
 #include "m_pd.h"
+#ifdef __ARM_NEON__
+#include <arm_neon.h>
+#endif
 
 /* ----------------------------- plus ----------------------------- */
 static t_class *plus_class, *scalarplus_class;
@@ -66,6 +69,16 @@ t_int *plus_perf8(t_int *w)
     int n = (int)(w[4]);
     for (; n; n -= 8, in1 += 8, in2 += 8, out += 8)
     {
+#ifdef __ARM_NEON__
+        float32x4_t f0 = vld1q_f32((float32_t*)&in1[0]);
+        float32x4_t g0 = vld1q_f32((float32_t*)&in2[0]);
+        float32x4_t r0 = vaddq_f32(f0, g0);
+        float32x4_t f4 = vld1q_f32((float32_t*)&in1[4]);
+        float32x4_t g4 = vld1q_f32((float32_t*)&in2[4]);
+        float32x4_t r4 = vaddq_f32(f4, g4);
+        vst1q_f32((float32_t*)&out[0], r0);
+        vst1q_f32((float32_t*)&out[4], r4);
+#else
         t_sample f0 = in1[0], f1 = in1[1], f2 = in1[2], f3 = in1[3];
         t_sample f4 = in1[4], f5 = in1[5], f6 = in1[6], f7 = in1[7];
 
@@ -74,6 +87,7 @@ t_int *plus_perf8(t_int *w)
 
         out[0] = f0 + g0; out[1] = f1 + g1; out[2] = f2 + g2; out[3] = f3 + g3;
         out[4] = f4 + g4; out[5] = f5 + g5; out[6] = f6 + g6; out[7] = f7 + g7;
+#endif
     }
     return (w+5);
 }
@@ -92,15 +106,27 @@ t_int *scalarplus_perf8(t_int *w)
 {
     t_sample *in = (t_sample *)(w[1]);
     t_float g = *(t_float *)(w[2]);
+#ifdef __ARM_NEON__
+    float32x4_t g0 = { g, g, g, g };
+#endif
     t_sample *out = (t_sample *)(w[3]);
     int n = (int)(w[4]);
     for (; n; n -= 8, in += 8, out += 8)
     {
+#ifdef __ARM_NEON__
+        float32x4_t f0 = vld1q_f32((float32_t*)&in[0]);
+        float32x4_t r0 = vaddq_f32(f0, g0);
+        float32x4_t f4 = vld1q_f32((float32_t*)&in[4]);
+        float32x4_t r1 = vaddq_f32(f4, g0);
+        vst1q_f32((float32_t*)&out[0], r0);
+        vst1q_f32((float32_t*)&out[4], r1);
+#else
         t_sample f0 = in[0], f1 = in[1], f2 = in[2], f3 = in[3];
         t_sample f4 = in[4], f5 = in[5], f6 = in[6], f7 = in[7];
 
         out[0] = f0 + g; out[1] = f1 + g; out[2] = f2 + g; out[3] = f3 + g;
         out[4] = f4 + g; out[5] = f5 + g; out[6] = f6 + g; out[7] = f7 + g;
+#endif
     }
     return (w+5);
 }
@@ -199,6 +225,16 @@ t_int *minus_perf8(t_int *w)
     int n = (int)(w[4]);
     for (; n; n -= 8, in1 += 8, in2 += 8, out += 8)
     {
+#ifdef __ARM_NEON__
+        float32x4_t f0 = vld1q_f32((float32_t*)&in1[0]);
+        float32x4_t g0 = vld1q_f32((float32_t*)&in2[0]);
+        float32x4_t r0 = vsubq_f32(f0, g0);
+        float32x4_t f4 = vld1q_f32((float32_t*)&in1[4]);
+        float32x4_t g4 = vld1q_f32((float32_t*)&in2[4]);
+        float32x4_t r1 = vsubq_f32(f4, g4);
+        vst1q_f32((float32_t*)&out[0], r0);
+        vst1q_f32((float32_t*)&out[4], r1);
+#else
         t_sample f0 = in1[0], f1 = in1[1], f2 = in1[2], f3 = in1[3];
         t_sample f4 = in1[4], f5 = in1[5], f6 = in1[6], f7 = in1[7];
 
@@ -207,6 +243,7 @@ t_int *minus_perf8(t_int *w)
 
         out[0] = f0 - g0; out[1] = f1 - g1; out[2] = f2 - g2; out[3] = f3 - g3;
         out[4] = f4 - g4; out[5] = f5 - g5; out[6] = f6 - g6; out[7] = f7 - g7;
+#endif
     }
     return (w+5);
 }
@@ -225,15 +262,27 @@ t_int *scalarminus_perf8(t_int *w)
 {
     t_sample *in = (t_sample *)(w[1]);
     t_float g = *(t_float *)(w[2]);
+#ifdef __ARM_NEON__
+    float32x4_t g0 = { g, g, g, g };
+#endif
     t_sample *out = (t_sample *)(w[3]);
     int n = (int)(w[4]);
     for (; n; n -= 8, in += 8, out += 8)
     {
+#ifdef __ARM_NEON__
+        float32x4_t f0 = vld1q_f32((float32_t*)&in[0]);
+        float32x4_t r0 = vsubq_f32(f0, g0);
+        float32x4_t f4 = vld1q_f32((float32_t*)&in[4]);
+        float32x4_t r1 = vsubq_f32(f4, g0);
+        vst1q_f32((float32_t*)&out[0], r0);
+        vst1q_f32((float32_t*)&out[4], r1);
+#else
         t_sample f0 = in[0], f1 = in[1], f2 = in[2], f3 = in[3];
         t_sample f4 = in[4], f5 = in[5], f6 = in[6], f7 = in[7];
 
         out[0] = f0 - g; out[1] = f1 - g; out[2] = f2 - g; out[3] = f3 - g;
         out[4] = f4 - g; out[5] = f5 - g; out[6] = f6 - g; out[7] = f7 - g;
+#endif
     }
     return (w+5);
 }
@@ -330,6 +379,16 @@ t_int *times_perf8(t_int *w)
     int n = (int)(w[4]);
     for (; n; n -= 8, in1 += 8, in2 += 8, out += 8)
     {
+#ifdef __ARM_NEON__
+        float32x4_t f0 = vld1q_f32((float32_t*)&in1[0]);
+        float32x4_t g0 = vld1q_f32((float32_t*)&in2[0]);
+        float32x4_t r0 = vmulq_f32(f0, g0);
+        float32x4_t f4 = vld1q_f32((float32_t*)&in1[4]);
+        float32x4_t g4 = vld1q_f32((float32_t*)&in2[4]);
+        float32x4_t r1 = vmulq_f32(f4, g4);
+        vst1q_f32((float32_t*)&out[0], r0);
+        vst1q_f32((float32_t*)&out[4], r1);
+#else
         t_sample f0 = in1[0], f1 = in1[1], f2 = in1[2], f3 = in1[3];
         t_sample f4 = in1[4], f5 = in1[5], f6 = in1[6], f7 = in1[7];
 
@@ -338,6 +397,7 @@ t_int *times_perf8(t_int *w)
 
         out[0] = f0 * g0; out[1] = f1 * g1; out[2] = f2 * g2; out[3] = f3 * g3;
         out[4] = f4 * g4; out[5] = f5 * g5; out[6] = f6 * g6; out[7] = f7 * g7;
+#endif
     }
     return (w+5);
 }
@@ -356,15 +416,27 @@ t_int *scalartimes_perf8(t_int *w)
 {
     t_sample *in = (t_sample *)(w[1]);
     t_float g = *(t_float *)(w[2]);
+#ifdef __ARM_NEON__
+    float32x4_t g0 = { g, g, g, g };
+#endif
     t_sample *out = (t_sample *)(w[3]);
     int n = (int)(w[4]);
     for (; n; n -= 8, in += 8, out += 8)
     {
+#ifdef __ARM_NEON__
+        float32x4_t f0 = vld1q_f32((float32_t*)&in[0]);
+        float32x4_t r0 = vmulq_f32(f0, g0);
+        float32x4_t f4 = vld1q_f32((float32_t*)&in[4]);
+        float32x4_t r1 = vmulq_f32(f4, g0);
+        vst1q_f32((float32_t*)&out[0], r0);
+        vst1q_f32((float32_t*)&out[4], r1);
+#else
         t_sample f0 = in[0], f1 = in[1], f2 = in[2], f3 = in[3];
         t_sample f4 = in[4], f5 = in[5], f6 = in[6], f7 = in[7];
 
         out[0] = f0 * g; out[1] = f1 * g; out[2] = f2 * g; out[3] = f3 * g;
         out[4] = f4 * g; out[5] = f5 * g; out[6] = f6 * g; out[7] = f7 * g;
+#endif
     }
     return (w+5);
 }
@@ -464,6 +536,36 @@ t_int *over_perf8(t_int *w)
     int n = (int)(w[4]);
     for (; n; n -= 8, in1 += 8, in2 += 8, out += 8)
     {
+//#ifdef x__ARM_NEON__
+/*
+void vect_divtest2(void)
+{
+    float32x2_t vrc, vc, vt, va, vb;
+    float x;
+    vb = vset_lane_f32(1.0f, vb, 0);
+    vc = vset_lane_f32(2.0f, vc, 0 );
+    vrc = vrecpe_f32(vc);
+    vt = vrecps_f32(vrc, vc);
+    vrc = vmul_f32(vrc, vt);
+    vt = vrecps_f32(vrc, vc);
+    vrc = vmul_f32(vrc, vt);
+    va = vmul_f32(vb, vrc);
+    x = vget_lane_f32(va, 0);
+    printf("%f\n", x);
+}
+*/
+//        float32x4_t f0 = vld1q_f32((float32_t*)&in1[0]);
+//        float32x4_t g0 = vld1q_f32((float32_t*)&in2[0]);
+//        
+//        float32x4_t vrc = vrecpsq_f32(f0);
+//        float32x4_t r0 = vmulq_f32(f0, g0);
+//        
+//        float32x4_t f4 = vld1q_f32((float32_t*)&in1[4]);
+//        float32x4_t g4 = vld1q_f32((float32_t*)&in2[4]);
+//        float32x4_t r1 = vdivq_f32(f4, g4);
+//        vst1q_f32((float32_t*)&out[0], r0);
+//        vst1q_f32((float32_t*)&out[4], r1);
+//#else
         t_sample f0 = in1[0], f1 = in1[1], f2 = in1[2], f3 = in1[3];
         t_sample f4 = in1[4], f5 = in1[5], f6 = in1[6], f7 = in1[7];
 
@@ -478,6 +580,7 @@ t_int *over_perf8(t_int *w)
         out[5] = (g5? f5 / g5 : 0);
         out[6] = (g6? f6 / g6 : 0);
         out[7] = (g7? f7 / g7 : 0);
+//#endif
     }
     return (w+5);
 }
@@ -606,6 +709,16 @@ t_int *max_perf8(t_int *w)
     int n = (int)(w[4]);
     for (; n; n -= 8, in1 += 8, in2 += 8, out += 8)
     {
+#ifdef __ARM_NEON__
+        float32x4_t f0 = vld1q_f32((float32_t*)&in1[0]);
+        float32x4_t g0 = vld1q_f32((float32_t*)&in2[0]);
+        float32x4_t r0 = vmaxq_f32(f0, g0);
+        float32x4_t f4 = vld1q_f32((float32_t*)&in1[4]);
+        float32x4_t g4 = vld1q_f32((float32_t*)&in2[4]);
+        float32x4_t r4 = vmaxq_f32(f4, g4);
+        vst1q_f32((float32_t*)&out[0], r0);        
+        vst1q_f32((float32_t*)&out[4], r4);        
+#else
         t_sample f0 = in1[0], f1 = in1[1], f2 = in1[2], f3 = in1[3];
         t_sample f4 = in1[4], f5 = in1[5], f6 = in1[6], f7 = in1[7];
 
@@ -616,6 +729,7 @@ t_int *max_perf8(t_int *w)
         out[2] = (f2 > g2 ? f2 : g2); out[3] = (f3 > g3 ? f3 : g3);
         out[4] = (f4 > g4 ? f4 : g4); out[5] = (f5 > g5 ? f5 : g5);
         out[6] = (f6 > g6 ? f6 : g6); out[7] = (f7 > g7 ? f7 : g7);
+#endif
     }
     return (w+5);
 }
@@ -638,10 +752,21 @@ t_int *scalarmax_perf8(t_int *w)
 {
     t_sample *in = (t_sample *)(w[1]);
     t_float g = *(t_float *)(w[2]);
+#ifdef __ARM_NEON__
+    float32x4_t g0 = { g, g, g, g };
+#endif
     t_sample *out = (t_sample *)(w[3]);
     int n = (int)(w[4]);
     for (; n; n -= 8, in += 8, out += 8)
     {
+#ifdef __ARM_NEON__
+        float32x4_t f0 = vld1q_f32((float32_t*)&in[0]);
+        float32x4_t r0 = vmaxq_f32(f0, g0);
+        float32x4_t f4 = vld1q_f32((float32_t*)&in[4]);
+        float32x4_t r4 = vmaxq_f32(f4, g0);
+        vst1q_f32((float32_t*)&out[0], r0);        
+        vst1q_f32((float32_t*)&out[4], r4);        
+#else
         t_sample f0 = in[0], f1 = in[1], f2 = in[2], f3 = in[3];
         t_sample f4 = in[4], f5 = in[5], f6 = in[6], f7 = in[7];
 
@@ -649,6 +774,7 @@ t_int *scalarmax_perf8(t_int *w)
         out[2] = (f2 > g ? f2 : g); out[3] = (f3 > g ? f3 : g);
         out[4] = (f4 > g ? f4 : g); out[5] = (f5 > g ? f5 : g);
         out[6] = (f6 > g ? f6 : g); out[7] = (f7 > g ? f7 : g);
+#endif
     }
     return (w+5);
 }
@@ -748,6 +874,16 @@ t_int *min_perf8(t_int *w)
     int n = (int)(w[4]);
     for (; n; n -= 8, in1 += 8, in2 += 8, out += 8)
     {
+#ifdef __ARM_NEON__
+        float32x4_t f0 = vld1q_f32((float32_t*)&in1[0]);
+        float32x4_t g0 = vld1q_f32((float32_t*)&in2[0]);
+        float32x4_t r0 = vminq_f32(f0, g0);
+        float32x4_t f4 = vld1q_f32((float32_t*)&in1[4]);
+        float32x4_t g4 = vld1q_f32((float32_t*)&in2[4]);
+        float32x4_t r4 = vminq_f32(f4, g4);
+        vst1q_f32((float32_t*)&out[0], r0);        
+        vst1q_f32((float32_t*)&out[4], r4);
+#else
         t_sample f0 = in1[0], f1 = in1[1], f2 = in1[2], f3 = in1[3];
         t_sample f4 = in1[4], f5 = in1[5], f6 = in1[6], f7 = in1[7];
 
@@ -758,6 +894,7 @@ t_int *min_perf8(t_int *w)
         out[2] = (f2 < g2 ? f2 : g2); out[3] = (f3 < g3 ? f3 : g3);
         out[4] = (f4 < g4 ? f4 : g4); out[5] = (f5 < g5 ? f5 : g5);
         out[6] = (f6 < g6 ? f6 : g6); out[7] = (f7 < g7 ? f7 : g7);
+#endif
     }
     return (w+5);
 }
@@ -780,10 +917,21 @@ t_int *scalarmin_perf8(t_int *w)
 {
     t_sample *in = (t_sample *)(w[1]);
     t_float g = *(t_float *)(w[2]);
+#ifdef __ARM_NEON__
+    float32x4_t g0 = { g, g, g, g };
+#endif
     t_float *out = (t_float *)(w[3]);
     int n = (int)(w[4]);
     for (; n; n -= 8, in += 8, out += 8)
     {
+#ifdef __ARM_NEON__
+        float32x4_t f0 = vld1q_f32((float32_t*)&in[0]);
+        float32x4_t r0 = vmaxq_f32(f0, g0);
+        float32x4_t f4 = vld1q_f32((float32_t*)&in[4]);
+        float32x4_t r4 = vmaxq_f32(f4, g0);
+        vst1q_f32((float32_t*)&out[0], r0);        
+        vst1q_f32((float32_t*)&out[4], r4);
+#else
         t_sample f0 = in[0], f1 = in[1], f2 = in[2], f3 = in[3];
         t_sample f4 = in[4], f5 = in[5], f6 = in[6], f7 = in[7];
 
@@ -791,6 +939,7 @@ t_int *scalarmin_perf8(t_int *w)
         out[2] = (f2 < g ? f2 : g); out[3] = (f3 < g ? f3 : g);
         out[4] = (f4 < g ? f4 : g); out[5] = (f5 < g ? f5 : g);
         out[6] = (f6 < g ? f6 : g); out[7] = (f7 < g ? f7 : g);
+#endif
     }
     return (w+5);
 }

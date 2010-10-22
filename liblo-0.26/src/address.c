@@ -42,7 +42,7 @@ lo_address lo_address_new_with_proto(int proto, const char *host, const char *po
 {
     lo_address a;
     
-    if(proto != LO_UDP && proto != LO_TCP && proto != LO_UNIX) return NULL;
+    if(proto != LO_UDP && proto != LO_TCP && proto != LO_UNIX && proto != LO_DIRECT) return NULL;
 
     a = calloc(1, sizeof(struct _lo_address));
     if(a == NULL) return NULL;
@@ -111,6 +111,18 @@ lo_address lo_address_new_from_url(const char *url)
 
 	return NULL;
     }
+
+    return a;
+}
+
+lo_address lo_address_direct_new(lo_send_handler h)
+{
+    lo_address a;
+
+    a = calloc(1, sizeof(struct _lo_address));
+    if(a == NULL) return NULL;
+    a->protocol = LO_DIRECT;
+    a->send = h;
 
     return a;
 }

@@ -74,6 +74,25 @@ lo_server_thread lo_server_thread_new_with_proto(const char *port, int proto,
     return st;
 }
 
+lo_server_thread lo_server_thread_direct_new(lo_recvready_handler ready, lo_recv_handler h, lo_err_handler err_h)
+{
+    lo_server_thread st = malloc(sizeof(struct _lo_server_thread));
+    st->s = calloc(1, sizeof(struct _lo_server));
+    st->s->recv_ready = ready;
+    st->s->recv = h;
+    st->s->err_h = err_h;
+    st->active = 0;
+    st->done = 0;
+
+    if (!st->s) {
+	free(st);
+
+	return NULL;
+    }
+
+    return st;
+}
+
 
 void lo_server_thread_free(lo_server_thread st)
 {
@@ -166,6 +185,7 @@ static void thread_func(void *data)
 
     while (st->active) {
 	lo_server_recv_noblock(st->s, 10);
+    pthread_yield_np();
     }
     st->done = 1;
     

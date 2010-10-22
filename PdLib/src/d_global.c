@@ -7,6 +7,10 @@
 #include "m_pd.h"
 #include <string.h>
 
+#ifdef __ARM_NEON__
+#include <arm_neon.h>
+#endif
+
 extern int sys_schedblocksize;
 
 /* ----------------------------- send~ ----------------------------- */
@@ -120,16 +124,31 @@ static t_int *sigreceive_perf8(t_int *w)
     {
         for (; n; n -= 8, in += 8, out += 8)
         {
+#ifdef __ARM_NEON__
+            float32x4_t f0 = vld1q_f32((float32_t*)&in[0]);
+            vst1q_f32((float32_t*)&out[0], f0);
+            float32x4_t f4 = vld1q_f32((float32_t*)&in[4]);
+            vst1q_f32((float32_t*)&out[4], f4);
+#else
             out[0] = in[0]; out[1] = in[1]; out[2] = in[2]; out[3] = in[3]; 
             out[4] = in[4]; out[5] = in[5]; out[6] = in[6]; out[7] = in[7]; 
+#endif
         }
     }
     else
     {
+#ifdef __ARM_NEON__
+        float32x4_t zero = { 0, 0, 0, 0 };
+#endif
         for (; n; n -= 8, in += 8, out += 8)
         {
+#ifdef __ARM_NEON__
+            vst1q_f32((float32_t*)&out[0], zero);
+            vst1q_f32((float32_t*)&out[4], zero);
+#else
             out[0] = 0; out[1] = 0; out[2] = 0; out[3] = 0; 
             out[4] = 0; out[5] = 0; out[6] = 0; out[7] = 0; 
+#endif
         }
     }
     return (w+4);
@@ -224,13 +243,25 @@ static t_int *sigcatch_perf8(t_int *w)
     t_sample *in = (t_sample *)(w[1]);
     t_sample *out = (t_sample *)(w[2]);
     int n = (int)(w[3]);
+#ifdef __ARM_NEON__
+    float32x4_t zero = { 0, 0, 0, 0 };
+#endif
     for (; n; n -= 8, in += 8, out += 8)
     {
+#ifdef __ARM_NEON__
+        float32x4_t f0 = vld1q_f32((float32_t*)&in[0]);
+        vst1q_f32((float32_t*)&out[0], f0);
+        float32x4_t f4 = vld1q_f32((float32_t*)&in[4]);
+        vst1q_f32((float32_t*)&out[4], f4);
+        vst1q_f32((float32_t*)&in[0], zero);
+        vst1q_f32((float32_t*)&in[4], zero);
+#else
        out[0] = in[0]; out[1] = in[1]; out[2] = in[2]; out[3] = in[3]; 
        out[4] = in[4]; out[5] = in[5]; out[6] = in[6]; out[7] = in[7]; 
     
        in[0] = 0; in[1] = 0; in[2] = 0; in[3] = 0; 
        in[4] = 0; in[5] = 0; in[6] = 0; in[7] = 0; 
+#endif
     }
     return (w+4);
 }

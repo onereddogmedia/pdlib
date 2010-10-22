@@ -19,7 +19,7 @@ typedef struct _qlist
     int x_onset;                /* playback position */
     t_clock *x_clock;
     t_float x_tempo;
-    double x_whenclockset;
+    float32_pd x_whenclockset;
     t_float x_clockdelay;
     t_symbol *x_dir;
     t_canvas *x_canvas;

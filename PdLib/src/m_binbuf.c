@@ -269,7 +269,7 @@ void binbuf_addv(t_binbuf *x, char *fmt, ...)
         switch(*fp++)
         {
         case 'i': SETFLOAT(at, va_arg(ap, int)); break;
-        case 'f': SETFLOAT(at, va_arg(ap, double)); break;
+        case 'f': SETFLOAT(at, va_arg(ap, float32_pd)); break;
         case 's': SETSYMBOL(at, va_arg(ap, t_symbol *)); break;
         case ';': SETSEMI(at); break;
         case ',': SETCOMMA(at); break;

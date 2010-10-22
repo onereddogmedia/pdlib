@@ -8,6 +8,10 @@
 #include "m_pd.h"
 #include "s_stuff.h"
 
+#ifdef __ARM_NEON__
+#include <arm_neon.h>
+#endif
+
 /* ----------------------------- dac~ --------------------------- */
 static t_class *dac_class;
 
@@ -112,6 +116,12 @@ t_int *copy_perf8(t_int *w)
     
     for (; n; n -= 8, in1 += 8, out += 8)
     {
+#ifdef __ARM_NEON__
+        float32x4_t f0 = vld1q_f32((float32_t*)&in1[0]);
+        vst1q_f32((float32_t*)&out[0], f0);
+        float32x4_t f4 = vld1q_f32((float32_t*)&in1[4]);
+        vst1q_f32((float32_t*)&out[4], f4);
+#else
         t_sample f0 = in1[0];
         t_sample f1 = in1[1];
         t_sample f2 = in1[2];
@@ -129,6 +139,7 @@ t_int *copy_perf8(t_int *w)
         out[5] = f5;
         out[6] = f6;
         out[7] = f7;
+#endif
     }
     return (w+4);
 }

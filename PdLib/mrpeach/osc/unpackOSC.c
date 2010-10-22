@@ -619,14 +619,14 @@ static int unpackOSC_IsNiceString(char *string, char *boundary)
 /* return the time difference in milliseconds between an OSC timetag and now */
 static t_float unpackOSC_DeltaTime(OSCTimeTag tt)
 {
-    static double onemillion = 1000000.0f;
-    static double onethousand = 1000.0f;
+    static float32_pd onemillion = 1000000.0f;
+    static float32_pd onethousand = 1000.0f;
 
     if (tt.fraction == 1 && tt.seconds == 0) return 0.0; /* immediate */
     else
     {
         OSCTimeTag ttnow;
-        double  ttusec, nowusec, delta;
+        float32_pd ttusec, nowusec, delta;
 #ifdef MSW
         struct _timeb tb;
 

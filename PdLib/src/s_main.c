@@ -26,6 +26,7 @@
 #endif
 
 #include "AudioOutput.h"
+#include "queue.h"
 
 char *pd_version;
 char pd_compiletime[] = __TIME__;
@@ -40,7 +41,7 @@ void sys_addhelppath(char *p);
 int sys_debuglevel;
 int sys_verbose;
 int sys_noloadbang;
-int sys_nogui;
+int sys_nogui = 1;
 int sys_hipriority = -1;    /* -1 = don't care; 0 = no; 1 = yes */
 int sys_guisetportnumber;   /* if started from the GUI, this is the port # */
 int sys_nosleep = 0;  /* skip all "sleep" calls and spin instead */
@@ -73,13 +74,19 @@ void audioOutputCallbackFn(const AudioTimeStamp *inTimestamp) {
 AudioCallbackParams sys_callbackparams = {
     &audioOutputCallbackFn,
     NULL,
-    0
+    0,
+    false,
+    NULL
 };
 
 t_sample *sys_soundout; // global var for samples
 t_sample *sys_soundin;
 
-int sys_printtostderr;
+struct msg_list* msg_queue_send;
+struct msg_list* msg_queue_recv;
+
+
+int sys_printtostderr = 1;
 int sys_hasstarted = 0;
 
 int sys_nmidiout = -1;
@@ -290,6 +297,10 @@ int sys_main(const char *libdir,
              int nInChannels,
              AudioCallbackFn callback)
 {
+    // peterj: make a message queue
+    msg_queue_send = list_new();
+    msg_queue_recv = list_new();
+    
     sys_userCallbackFn = callback;
     
     sys_externalschedlib = 0;
@@ -329,7 +340,8 @@ int sys_main(const char *libdir,
 
     // bryansum: initialize coreaudio stuff
     int status;
-    if ((status = AudioOutputInitialize(&sys_callbackparams))) {
+    if ((status = AudioOutputInitialize(&sys_callbackparams)))
+    {
         return status;
     }
     
@@ -340,7 +352,7 @@ int sys_main(const char *libdir,
     sched_set_using_audio(SCHED_AUDIO_CALLBACK);
     
     sys_hasstarted = 1;
-    
+
     return (m_mainloop());
 }
 
@@ -362,3 +374,37 @@ static void sys_afterargparse(void)
     sys_helppath = namelist_append_files(sys_helppath, sbuf);
 }
 
+
+void sys_bounce(int bounce)
+{
+    sys_callbackparams.bounce = bounce;
+}
+
+void sys_setfile(AudioFileID audioFileID, ExtAudioFileRef audiofile)
+{
+    sys_callbackparams.audioFileID = audioFileID;
+    sys_callbackparams.audiofile = audiofile;
+}
+
+void sys_msgadd_send(const char* msg, const size_t num)
+{
+    list_add_element(msg_queue_recv, msg, num);
+}
+
+void sys_msgadd_recv(const char* msg, const size_t num)
+{
+    list_add_element(msg_queue_send, msg, num);
+}
+
+int sys_msg_recv_empty()
+{
+    return (NULL != msg_queue_send && NULL != msg_queue_send->head && NULL != msg_queue_send->tail);
+}
+
+void sys_msgget_recv(char** data, size_t* len)
+{
+    *data = malloc(1 * msg_queue_send->head->len);
+    *len = msg_queue_send->head->len;
+    memcpy(*data, msg_queue_send->head->data, msg_queue_send->head->len);
+    list_remove_element(msg_queue_send);
+}

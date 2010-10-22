@@ -86,12 +86,12 @@ static void init_rsqrt(void)
         float f;
         int32 l = (i ? (i == DUMTAB1SIZE-1 ? DUMTAB1SIZE-2 : i) : 1)<< 23;
         *(int32 *)(&f) = l;
-        rsqrt_exptab[i] = 1./sqrt(f);   
+        rsqrt_exptab[i] = 1./sqrtf(f);   
     }
     for (i = 0; i < DUMTAB2SIZE; i++)
     {
         float f = 1 + (1./DUMTAB2SIZE) * i;
-        rsqrt_mantissatab[i] = 1./sqrt(f);      
+        rsqrt_mantissatab[i] = 1./sqrtf(f);      
     }
 }
 
@@ -299,7 +299,7 @@ static t_int *mtof_tilde_perform(t_int *w)
         else
         {
             if (f > 1499) f = 1499;
-            *out = 8.17579891564 * exp(.0577622650 * f);
+            *out = 8.17579891564 * expf(.0577622650 * f);
         }
     }
     return (w + 4);
@@ -343,7 +343,7 @@ static t_int *ftom_tilde_perform(t_int *w)
     for (; n--; *in++, out++)
     {
         t_sample f = *in;
-        *out = (f > 0 ? 17.3123405046 * log(.12231220585 * f) : -1500);
+        *out = (f > 0 ? 17.3123405046 * logf(.12231220585 * f) : -1500);
     }
     return (w + 4);
 }
@@ -391,7 +391,7 @@ static t_int *dbtorms_tilde_perform(t_int *w)
         {
             if (f > 485)
                 f = 485;
-            *out = exp((LOGTEN * 0.05) * (f-100.));
+            *out = expf((LOGTEN * 0.05) * (f-100.));
         }
     }
     return (w + 4);
@@ -438,7 +438,7 @@ static t_int *rmstodb_tilde_perform(t_int *w)
         if (f <= 0) *out = 0;
         else
         {
-            t_sample g = 100 + 20./LOGTEN * log(f);
+            t_sample g = 100 + 20./LOGTEN * logf(f);
             *out = (g < 0 ? 0 : g);
         }
     }
@@ -488,7 +488,7 @@ static t_int *dbtopow_tilde_perform(t_int *w)
         {
             if (f > 870)
                 f = 870;
-            *out = exp((LOGTEN * 0.1) * (f-100.));
+            *out = expf((LOGTEN * 0.1) * (f-100.));
         }
     }
     return (w + 4);
@@ -535,7 +535,7 @@ static t_int *powtodb_tilde_perform(t_int *w)
         if (f <= 0) *out = 0;
         else
         {
-            t_sample g = 100 + 10./LOGTEN * log(f);
+            t_sample g = 100 + 10./LOGTEN * logf(f);
             *out = (g < 0 ? 0 : g);
         }
     }
@@ -583,7 +583,7 @@ t_int *pow_tilde_perform(t_int *w)
     {
         float f = *in1++;
         if (f > 0)
-            *out = pow(f, *in2);
+            *out = powf(f, *in2);
         else *out = 0;
         out++;
         in2++;
@@ -627,7 +627,7 @@ t_int *exp_tilde_perform(t_int *w)
     t_sample *out = (t_sample *)(w[2]);
     int n = (int)(w[3]);
     while (n--)
-        *out++ = exp(*in1++);
+        *out++ = expf(*in1++);
     return (w+4);
 }
 
@@ -675,8 +675,8 @@ t_int *log_tilde_perform(t_int *w)
         if (f <= 0)
             *out = -1000;   /* rather than blow up, output a number << 0 */
         else if (g <= 0)
-            *out = log(f);
-        else *out = log(f)/log(g);
+            *out = logf(f);
+        else *out = logf(f)/logf(g);
         out++;
     }
     return (w+5);

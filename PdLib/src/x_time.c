@@ -13,7 +13,7 @@ typedef struct _delay
 {
     t_object x_obj;
     t_clock *x_clock;
-    double x_deltime;
+    float32_pd x_deltime;
 } t_delay;
 
 static void delay_bang(t_delay *x)
@@ -77,7 +77,7 @@ typedef struct _metro
 {
     t_object x_obj;
     t_clock *x_clock;
-    double x_deltime;
+    float32_pd x_deltime;
     int x_hit;
 } t_metro;
 
@@ -145,20 +145,20 @@ typedef struct _line
 {
     t_object x_obj;
     t_clock *x_clock;
-    double x_targettime;
+    float32_pd x_targettime;
     t_float x_targetval;
-    double x_prevtime;
+    float32_pd x_prevtime;
     t_float x_setval;
     int x_gotinlet;
     t_float x_grain;
-    double x_1overtimediff;
-    double x_in1val;
+    float32_pd x_1overtimediff;
+    float32_pd x_in1val;
 } t_line;
 
 static void line_tick(t_line *x)
 {
-    double timenow = clock_getsystime();
-    double msectogo = - clock_gettimesince(x->x_targettime);
+    float32_pd timenow = clock_getsystime();
+    float32_pd msectogo = - clock_gettimesince(x->x_targettime);
     if (msectogo < 1E-9)
     {
         outlet_float(x->x_obj.ob_outlet, x->x_targetval);
@@ -175,7 +175,7 @@ static void line_tick(t_line *x)
 
 static void line_float(t_line *x, t_float f)
 {
-    double timenow = clock_getsystime();
+    float32_pd timenow = clock_getsystime();
     if (x->x_gotinlet && x->x_in1val > 0)
     {
         if (timenow > x->x_targettime) x->x_setval = x->x_targetval;
@@ -258,7 +258,7 @@ static t_class *timer_class;
 typedef struct _timer
 {
     t_object x_obj;
-    double x_settime;
+    float32_pd x_settime;
 } t_timer;
 
 static void timer_bang(t_timer *x)

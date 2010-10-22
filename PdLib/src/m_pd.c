@@ -315,12 +315,25 @@ void extras_init(void)
     tcpserver_setup();
     udpreceive_setup();
     udpsend_setup();
+    // peterj's mrpeach direct function extension
+    msgreceive_setup();
+    msgsend_setup();
     
     // mrpeach osc files
     packOSC_setup();
     pipelist_setup();
     routeOSC_setup();
     unpackOSC_setup();
+    
+    // extras and externals iemlib, zexy, cyclone, miXed
+    para_bp2_tilde_setup();
+    l2s_setup();
+    sgn_tilde_setup();
+    expr_tilde_setup();
+    multiplex_tilde_setup();
+    alternate_setup();
+    invert_setup();
+    panvol_tilde_setup();
 }
 
 extern int sys_dacsr;

@@ -153,8 +153,8 @@ void routeOSC_setup(void)
 
     ps_emptySymbol = gensym("");
 
-    post("routeOSC object version 1.0 by Martin Peach, based on OSCroute by Matt Wright. pd: jdl Win32 raf.");
-    post("OSCroute Copyright © 1999 Regents of the Univ. of California. All Rights Reserved.");
+    //post("routeOSC object version 1.0 by Martin Peach, based on OSCroute by Matt Wright. pd: jdl Win32 raf.");
+    //post("OSCroute Copyright © 1999 Regents of the Univ. of California. All Rights Reserved.");
 }
 
 /* instance creation routine */

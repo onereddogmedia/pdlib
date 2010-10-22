@@ -64,7 +64,7 @@ static void random_bang(t_random *x)
     int range = (n < 1 ? 1 : n);
     unsigned int randval = x->x_state;
     x->x_state = randval = randval * 472940017 + 832416023;
-    nval = ((double)range) * ((double)randval)
+    nval = ((float32_pd)range) * ((float32_pd)randval)
         * (1./4294967296.);
     if (nval >= range) nval = range-1;
     outlet_float(x->x_obj.ob_outlet, nval);
@@ -281,7 +281,7 @@ static t_class *realtime_class;
 typedef struct _realtime
 {
     t_object x_obj;
-    double x_setrealtime;
+    float32_pd x_setrealtime;
 } t_realtime;
 
 static void realtime_bang(t_realtime *x)

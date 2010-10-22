@@ -9,6 +9,10 @@
 #include "m_pd.h"
 #include "math.h"
 
+#ifdef __ARM_NEON__
+#include <arm_neon.h>
+#endif
+
 extern int sys_schedblocksize;
 
 /* -------------------------- sig~ ------------------------------ */
@@ -33,11 +37,18 @@ static t_int *sig_tilde_perform(t_int *w)
 static t_int *sig_tilde_perf8(t_int *w)
 {
     t_float f = *(t_float *)(w[1]);
+#ifdef __ARM_NEON__
+    float32x4_t f0 = { f, f, f, f };
+#endif
     t_sample *out = (t_sample *)(w[2]);
     int n = (int)(w[3]);
     
     for (; n; n -= 8, out += 8)
     {
+#ifdef _ARM_NEON__
+        vst1q_f32((float32x4_t*)&out[0], f0);
+        vst1q_f32((float32x4_t*)&out[4], f0);
+#else
         out[0] = f;
         out[1] = f;
         out[2] = f;
@@ -46,6 +57,7 @@ static t_int *sig_tilde_perf8(t_int *w)
         out[5] = f;
         out[6] = f;
         out[7] = f;
+#endif
     }
     return (w+4);
 }
@@ -165,10 +177,18 @@ static t_int *line_tilde_perf8(t_int *w)
     else
     {
         t_sample f = x->x_value = x->x_target;
+#ifdef _ARM_NEON__
+        float32x4_t f0 = { f, f, f, f };
+#endif
         for (; n; n -= 8, out += 8)
         {
+#ifdef _ARM_NEON__
+            vst1q_f32((float32x4_t*)&out[0], f0);
+            vst1q_f32((float32x4_t*)&out[4], f0);
+#else
             out[0] = f; out[1] = f; out[2] = f; out[3] = f; 
             out[4] = f; out[5] = f; out[6] = f; out[7] = f;
+#endif
         }
     }
     return (w+4);
@@ -232,8 +252,8 @@ static t_class *vline_tilde_class;
 
 typedef struct _vseg
 {
-    double s_targettime;
-    double s_starttime;
+    float32_pd s_targettime;
+    float32_pd s_starttime;
     t_sample s_target;
     struct _vseg *s_next;
 } t_vseg;
@@ -241,12 +261,12 @@ typedef struct _vseg
 typedef struct _vline
 {
     t_object x_obj;
-    double x_value;
-    double x_inc;
-    double x_referencetime;
-    double x_samppermsec;
-    double x_msecpersamp;
-    double x_targettime;
+    float32_pd x_value;
+    float32_pd x_inc;
+    float32_pd x_referencetime;
+    float32_pd x_samppermsec;
+    float32_pd x_msecpersamp;
+    float32_pd x_targettime;
     t_sample x_target;
     t_float x_inlet1;
     t_float x_inlet2;
@@ -258,15 +278,15 @@ static t_int *vline_tilde_perform(t_int *w)
     t_vline *x = (t_vline *)(w[1]);
     t_float *out = (t_float *)(w[2]);
     int n = (int)(w[3]), i;
-    double f = x->x_value;
-    double inc = x->x_inc;
-    double msecpersamp = x->x_msecpersamp;
-    double samppermsec = x->x_samppermsec;
-    double timenow = clock_gettimesince(x->x_referencetime) - n * msecpersamp;
+    float32_pd f = x->x_value;
+    float32_pd inc = x->x_inc;
+    float32_pd msecpersamp = x->x_msecpersamp;
+    float32_pd samppermsec = x->x_samppermsec;
+    float32_pd timenow = clock_gettimesince(x->x_referencetime) - n * msecpersamp;
     t_vseg *s = x->x_list;
     for (i = 0; i < n; i++)
     {
-        double timenext = timenow + msecpersamp;
+        float32_pd timenext = timenow + msecpersamp;
     checknext:
         if (s)
         {
@@ -283,7 +303,7 @@ static t_int *vline_tilde_perform(t_int *w)
                 }
                 else
                 {
-                    double incpermsec = (s->s_target - f)/
+                    float32_pd incpermsec = (s->s_target - f)/
                         (s->s_targettime - s->s_starttime);
                     f = f + incpermsec * (timenext - s->s_starttime);
                     inc = incpermsec * msecpersamp;
@@ -321,10 +341,10 @@ static void vline_tilde_stop(t_vline *x)
 
 static void vline_tilde_float(t_vline *x, t_float f)
 {
-    double timenow = clock_gettimesince(x->x_referencetime);
+    float32_pd timenow = clock_gettimesince(x->x_referencetime);
     t_float inlet1 = (x->x_inlet1 < 0 ? 0 : x->x_inlet1);
     t_float inlet2 = x->x_inlet2;
-    double starttime = timenow + inlet2;
+    float32_pd starttime = timenow + inlet2;
     t_vseg *s1, *s2, *deletefrom = 0, *snew;
     if (PD_BIGORSMALL(f))
         f = 0;
@@ -381,8 +401,8 @@ static void vline_tilde_float(t_vline *x, t_float f)
 static void vline_tilde_dsp(t_vline *x, t_signal **sp)
 {
     dsp_add(vline_tilde_perform, 3, x, sp[0]->s_vec, sp[0]->s_n);
-    x->x_samppermsec = ((double)(sp[0]->s_sr)) / 1000;
-    x->x_msecpersamp = ((double)1000) / sp[0]->s_sr;
+    x->x_samppermsec = ((float32_pd)(sp[0]->s_sr)) / 1000;
+    x->x_msecpersamp = ((float32_pd)1000) / sp[0]->s_sr;
 }
 
 static void *vline_tilde_new(void)
@@ -477,7 +497,7 @@ typedef struct _vsnapshot
     t_sample *x_vec;
     t_float x_f;
     t_float x_sampspermsec;
-    double x_time;
+    float32_pd x_time;
 } t_vsnapshot;
 
 static void *vsnapshot_tilde_new(void)
@@ -599,7 +619,7 @@ static void *env_tilde_new(t_floatarg fnpoints, t_floatarg fperiod)
     x->x_period = period;
     for (i = 0; i < MAXOVERLAP; i++) x->x_sumbuf[i] = 0;
     for (i = 0; i < npoints; i++)
-        buf[i] = (1. - cos((2 * 3.14159 * i) / npoints))/npoints;
+        buf[i] = (1. - cosf((2 * 3.14159f * i) / npoints))/npoints;
     for (; i < npoints+sys_schedblocksize; i++) buf[i] = 0;
     x->x_clock = clock_new(x, (t_method)env_tilde_tick);
     x->x_outlet = outlet_new(&x->x_obj, gensym("float"));

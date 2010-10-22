@@ -607,7 +607,7 @@ EXTERN t_float fielddesc_cvtfromcoord(t_fielddesc *f, t_float coord);
 
 /* ----------------------- guiconnects, g_guiconnect.c --------- */
 EXTERN t_guiconnect *guiconnect_new(t_pd *who, t_symbol *sym);
-EXTERN void guiconnect_notarget(t_guiconnect *x, double timedelay);
+EXTERN void guiconnect_notarget(t_guiconnect *x, float32_pd timedelay);
 
 /* ------------- IEMGUI routines used in other g_ files ---------------- */
 EXTERN t_symbol *iemgui_raute2dollar(t_symbol *s);

@@ -18,6 +18,10 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
+#ifdef __ARM_NEON__
+#include <arm_neon.h>
+#endif
+
 extern t_class *vinlet_class, *voutlet_class, *canvas_class;
 t_float *obj_findsignalscalar(t_object *x, int m);
 static int ugen_loud;
@@ -50,8 +54,16 @@ t_int *zero_perf8(t_int *w)
     t_sample *out = (t_sample *)(w[1]);
     int n = (int)(w[2]);
     
+#ifdef __ARM_NEON__
+    float32x4_t zero = { 0, 0, 0, 0 };
+#endif
+
     for (; n; n -= 8, out += 8)
     {
+#ifdef __ARM_NEON__
+        vst1q_f32((float32_t*)&out[0], zero);
+        vst1q_f32((float32_t*)&out[4], zero);
+#else
         out[0] = 0;
         out[1] = 0;
         out[2] = 0;
@@ -60,6 +72,7 @@ t_int *zero_perf8(t_int *w)
         out[5] = 0;
         out[6] = 0;
         out[7] = 0;
+#endif
     }
     return (w+3);
 }

@@ -73,7 +73,7 @@ void my_numbox_calc_fontwidth(t_my_numbox *x)
 
 void my_numbox_ftoa(t_my_numbox *x)
 {
-    double f=x->x_val;
+    float32_pd f=x->x_val;
     int bufsize, is_exp=0, i, idecimal;
 
     sprintf(x->x_buf, "%g", f);
@@ -401,7 +401,7 @@ static void my_numbox_save(t_gobj *z, t_binbuf *b)
     binbuf_addv(b, ";");
 }
 
-int my_numbox_check_minmax(t_my_numbox *x, double min, double max)
+int my_numbox_check_minmax(t_my_numbox *x, float32_pd min, float32_pd max)
 {
     int ret=0;
 
@@ -433,7 +433,7 @@ int my_numbox_check_minmax(t_my_numbox *x, double min, double max)
         ret = 1;
     }
     if(x->x_lin0_log1)
-        x->x_k = exp(log(x->x_max/x->x_min)/(double)(x->x_log_height));
+        x->x_k = expf(logf(x->x_max/x->x_min)/(float32_pd)(x->x_log_height));
     else
         x->x_k = 1.0;
     return(ret);
@@ -486,8 +486,8 @@ static void my_numbox_dialog(t_my_numbox *x, t_symbol *s, int argc,
     t_symbol *srl[3];
     int w = (int)atom_getintarg(0, argc, argv);
     int h = (int)atom_getintarg(1, argc, argv);
-    double min = (double)atom_getfloatarg(2, argc, argv);
-    double max = (double)atom_getfloatarg(3, argc, argv);
+    float32_pd min = (float32_pd)atom_getfloatarg(2, argc, argv);
+    float32_pd max = (float32_pd)atom_getfloatarg(3, argc, argv);
     int lilo = (int)atom_getintarg(4, argc, argv);
     int log_height = (int)atom_getintarg(6, argc, argv);
     int sr_flags;
@@ -517,12 +517,12 @@ static void my_numbox_dialog(t_my_numbox *x, t_symbol *s, int argc,
 
 static void my_numbox_motion(t_my_numbox *x, t_floatarg dx, t_floatarg dy)
 {
-    double k2=1.0;
+    float32_pd k2=1.0;
 
     if(x->x_gui.x_fsf.x_finemoved)
         k2 = 0.01;
     if(x->x_lin0_log1)
-        x->x_val *= pow(x->x_k, -k2*dy);
+        x->x_val *= powf(x->x_k, -k2*dy);
     else
         x->x_val -= k2*dy;
     my_numbox_clip(x);
@@ -583,7 +583,7 @@ static void my_numbox_log_height(t_my_numbox *x, t_floatarg lh)
         lh = 10.0;
     x->x_log_height = (int)lh;
     if(x->x_lin0_log1)
-        x->x_k = exp(log(x->x_max/x->x_min)/(double)(x->x_log_height));
+        x->x_k = expf(logf(x->x_max/x->x_min)/(float32_pd)(x->x_log_height));
     else
         x->x_k = 1.0;
     
@@ -623,8 +623,8 @@ static void my_numbox_pos(t_my_numbox *x, t_symbol *s, int ac, t_atom *av)
 
 static void my_numbox_range(t_my_numbox *x, t_symbol *s, int ac, t_atom *av)
 {
-    if(my_numbox_check_minmax(x, (double)atom_getfloatarg(0, ac, av),
-                              (double)atom_getfloatarg(1, ac, av)))
+    if(my_numbox_check_minmax(x, (float32_pd)atom_getfloatarg(0, ac, av),
+                              (float32_pd)atom_getfloatarg(1, ac, av)))
     {
         sys_queuegui(x, x->x_gui.x_glist, my_numbox_draw_update);
         /*my_numbox_bang(x);*/
@@ -754,7 +754,7 @@ static void *my_numbox_new(t_symbol *s, int argc, t_atom *argv)
     int lilo=0, f=0, ldx=0, ldy=-8;
     int fs=10;
     int log_height=256;
-    double min=-1.0e+37, max=1.0e+37,v=0.0;
+    float32_pd min=-1.0e+37, max=1.0e+37,v=0.0;
     char str[144];
 
     if((argc >= 17)&&IS_A_FLOAT(argv,0)&&IS_A_FLOAT(argv,1)
@@ -769,8 +769,8 @@ static void *my_numbox_new(t_symbol *s, int argc, t_atom *argv)
     {
         w = (int)atom_getintarg(0, argc, argv);
         h = (int)atom_getintarg(1, argc, argv);
-        min = (double)atom_getfloatarg(2, argc, argv);
-        max = (double)atom_getfloatarg(3, argc, argv);
+        min = (float32_pd)atom_getfloatarg(2, argc, argv);
+        max = (float32_pd)atom_getfloatarg(3, argc, argv);
         lilo = (int)atom_getintarg(4, argc, argv);
         iem_inttosymargs(&x->x_gui.x_isa, atom_getintarg(5, argc, argv));
         iemgui_new_getnames(&x->x_gui, 6, argv);

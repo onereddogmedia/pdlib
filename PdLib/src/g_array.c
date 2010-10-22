@@ -262,7 +262,7 @@ static void garray_fittograph(t_garray *x, int n, int style)
     if (gl->gl_list == &x->x_gobj && !x->x_gobj.g_next)
     {
         vmess(&gl->gl_pd, gensym("bounds"), "ffff",
-            0., gl->gl_y1, (double)
+            0., gl->gl_y1, (float32_pd)
                 (style == PLOTSTYLE_POINTS || n == 1 ? n : n-1),
                     gl->gl_y2);
                 /* close any dialogs that might have the wrong info now... */
@@ -1189,7 +1189,7 @@ static void garray_const(t_garray *x, t_floatarg g)
 static void garray_dofo(t_garray *x, int npoints, t_float dcval,
     int nsin, t_float *vsin, int sineflag)
 {
-    double phase, phaseincr, fj;
+    float32_pd phase, phaseincr, fj;
     int yonset, i, j, elemsize;
     t_array *array = garray_getarray_floatonly(x, &yonset, &elemsize);
     if (!array)
@@ -1206,13 +1206,13 @@ static void garray_dofo(t_garray *x, int npoints, t_float dcval,
     phaseincr = 2. * 3.14159 / npoints;
     for (i = 0, phase = -phaseincr; i < array->a_n; i++, phase += phaseincr)
     {
-        double sum = dcval;
+        float32_pd sum = dcval;
         if (sineflag)
             for (j = 0, fj = phase; j < nsin; j++, fj += phase)
-                sum += vsin[j] * sin(fj);
+                sum += vsin[j] * sinf(fj);
         else
             for (j = 0, fj = 0; j < nsin; j++, fj += phase)
-                sum += vsin[j] * cos(fj);
+                sum += vsin[j] * cosf(fj);
         *((t_float *)((array->a_vec + elemsize * i)) + yonset)
             = sum;
     }
@@ -1268,7 +1268,7 @@ static void garray_cosinesum(t_garray *x, t_symbol *s, int argc, t_atom *argv)
 static void garray_normalize(t_garray *x, t_float f)
 {
     int type, npoints, i;
-    double maxv, renormer;
+    float32_pd maxv, renormer;
     int yonset, elemsize;
     t_array *array = garray_getarray_floatonly(x, &yonset, &elemsize);
     if (!array)
@@ -1282,7 +1282,7 @@ static void garray_normalize(t_garray *x, t_float f)
 
     for (i = 0, maxv = 0; i < array->a_n; i++)
     {
-        double v = *((t_float *)(array->a_vec + elemsize * i)
+        float32_pd v = *((t_float *)(array->a_vec + elemsize * i)
             + yonset);
         if (v > maxv)
             maxv = v;

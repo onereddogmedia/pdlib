@@ -126,11 +126,11 @@ static void netsend_send(t_netsend *x, t_symbol *s, int argc, t_atom *argv)
         binbuf_gettext(b, &buf, &length);
         for (bp = buf, sent = 0; sent < length;)
         {
-            static double lastwarntime;
-            static double pleasewarn;
-            double timebefore = sys_getrealtime();
+            static float32_pd lastwarntime;
+            static float32_pd pleasewarn;
+            float32_pd timebefore = sys_getrealtime();
             int res = send(x->x_fd, bp, length-sent, 0);
-            double timeafter = sys_getrealtime();
+            float32_pd timeafter = sys_getrealtime();
             int late = (timeafter - timebefore > 0.005);
             if (late || pleasewarn)
             {

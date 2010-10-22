@@ -189,9 +189,9 @@ typedef struct _hslider
     int      x_thick;
     int      x_lin0_log1;
     int      x_steady;
-    double   x_min;
-    double   x_max;
-    double   x_k;
+    float32_pd x_min;
+    float32_pd x_max;
+    float32_pd x_k;
 } t_hslider;
 
 typedef struct _hdial
@@ -227,9 +227,9 @@ typedef struct _vslider
     int      x_val;
     int      x_lin0_log1;
     int      x_steady;
-    double   x_min;
-    double   x_max;
-    double   x_k;
+    float32_pd x_min;
+    float32_pd x_max;
+    float32_pd x_k;
 } t_vslider;
 
 typedef struct _vu
@@ -252,10 +252,10 @@ typedef struct _my_numbox
     t_iemgui x_gui;
     t_clock  *x_clock_reset;
     t_clock  *x_clock_wait;
-    double   x_val;
-    double   x_min;
-    double   x_max;
-    double   x_k;
+    float32_pd x_val;
+    float32_pd x_min;
+    float32_pd x_max;
+    float32_pd x_k;
     int      x_lin0_log1;
     char     x_buf[IEMGUI_MAX_NUM_LEN];
     int      x_numwidth;

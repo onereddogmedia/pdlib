@@ -650,7 +650,7 @@ void store_registers(FFT_NET    *fft_net, SAMPLE *buf, int buf_form,
              do {
                real  = fft_net->regr[i];
                imag  = fft_net->regi[i];
-               *buf++ = (float)sqrt(real*real+imag*imag);
+               *buf++ = (float)sqrtf(real*real+imag*imag);
              } while (++i < n);
            } break;
 
@@ -675,7 +675,7 @@ void store_registers(FFT_NET    *fft_net, SAMPLE *buf, int buf_form,
              do {
                real    = fft_net->regr[i];
                imag    = fft_net->regi[i];
-               *buf++  = (float)sqrt(real*real+imag*imag);
+               *buf++  = (float)sqrtf(real*real+imag*imag);
                if (real)                       /* a hack to avoid div by zero */
                  *buf++ = (float)atan2(imag, real);
                else {                          /* deal with bad case */
@@ -698,20 +698,20 @@ void store_registers(FFT_NET    *fft_net, SAMPLE *buf, int buf_form,
            switch (buf_form) {
            case REAL: {                        /* real only */
              do {
-               *buf++ = (float)20.*log10(fft_net->regr[i]);
+               *buf++ = (float)20.*log10f(fft_net->regr[i]);
              } while (++i < n);
            } break;
 
            case IMAG: {                        /* imag only */
              do {
-               *buf++ = (float)20.*log10(fft_net->regi[i]);
+               *buf++ = (float)20.*log10f(fft_net->regi[i]);
              } while (++i < n);
            } break;
 
            case RECT: {                        /* real and imag */
              do {
-               *buf++ = (float)20.*log10(fft_net->regr[i]);
-               *buf++ = (float)20.*log10(fft_net->regi[i]);
+               *buf++ = (float)20.*log10f(fft_net->regr[i]);
+               *buf++ = (float)20.*log10f(fft_net->regi[i]);
              } while (++i < n);  
            } break;
 
@@ -719,7 +719,7 @@ void store_registers(FFT_NET    *fft_net, SAMPLE *buf, int buf_form,
              do {
                real  = fft_net->regr[i];
                imag  = fft_net->regi[i];
-               *buf++ = (float)20.*log10(sqrt(real*real+imag*imag));  
+               *buf++ = (float)20.*log10f(sqrtf(real*real+imag*imag));  
              } while (++i < n);
            } break;
 
@@ -741,7 +741,7 @@ void store_registers(FFT_NET    *fft_net, SAMPLE *buf, int buf_form,
              do {
                real  = fft_net->regr[i];
                imag  = fft_net->regi[i];
-               *buf++ = (float)20.*log10(sqrt(real*real+imag*imag));           
+               *buf++ = (float)20.*log10f(sqrtf(real*real+imag*imag));           
                if (real) 
                  *buf++ = (float)atan2(imag, real);
                else {                          /* deal with bad case */
@@ -991,7 +991,7 @@ void short_to_float(short *short_buf, float *float_buf, int n)
 
 void pd_fft(t_float *buf, int npoints, int inverse)
 {
-  double renorm;
+  float32_pd renorm;
   SAMPLE *fp, *fp2;
   int i;
   renorm = (inverse ? npoints : 1.);

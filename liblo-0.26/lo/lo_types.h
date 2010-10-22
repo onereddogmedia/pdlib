@@ -134,6 +134,19 @@ typedef int (*lo_method_handler)(const char *path, const char *types,
 				 lo_arg **argv, int argc, lo_message msg,
 				 void *user_data);
 
+
+/**
+ * \brief A callback function to send data through.
+ */
+typedef void (*lo_send_handler)(const char *msg, const size_t len);
+
+/**
+ * \brief A callback function to receive data from.
+ */
+typedef int (*lo_recvready_handler)();
+typedef void (*lo_recv_handler)(char** data, size_t* len);
+
+
 #ifdef __cplusplus
 }
 #endif

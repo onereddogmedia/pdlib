@@ -31,6 +31,7 @@
 
 #import "PdController.h"
 #import "s_main.h"
+#import <AudioToolbox/AudioToolbox.h>
 #import <unistd.h>
 
 static const NSInteger kDefaultSoundRate = 22050;
@@ -41,11 +42,12 @@ static PdController *sharedSingleton = nil;
 
 @implementation PdController
 
-@synthesize externs, openfiles, libdir, soundRate, blockSize, nOutChannels, nInChannels, callbackFn;
+@synthesize externs, openfiles, libdir, soundRate, blockSize, nOutChannels, nInChannels, callbackFn, audioFileID, audiofile, delegate;
 
-+ (PdController*)sharedController
++ (PdController *)sharedController
 {
-    if (sharedSingleton == nil) {
+    if (sharedSingleton == nil)
+    {
         sharedSingleton = [[super allocWithZone:NULL] init];
     }
     return sharedSingleton;
@@ -77,8 +79,10 @@ static PdController *sharedSingleton = nil;
 {
     NSLog(@"Warning: opening files is still experimental");
     
-    @synchronized(self) {
-        if (![pdThread isExecuting]) {
+    @synchronized(self)
+    {
+        if (![pdThread isExecuting])
+        {
             NSLog(@"pdlib is not currently running");
             return -1; 
         }        
@@ -97,19 +101,21 @@ static PdController *sharedSingleton = nil;
     return r_value;
 }
 
--(void)pdThreadMain
+- (void)pdThreadMain
 {    
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     
-    if (!libdir) {
+    if (!libdir)
+    {
         NSLog(@"PdLib: libdir must be specified");
         return;
     }
-    if (!soundRate || !blockSize || !(blockSize % 64 == 0) || !nOutChannels || !nInChannels) {
+    if (!soundRate || !blockSize || !(blockSize % 64 == 0) || !nOutChannels || !nInChannels)
+    {
         NSLog(@"pd audio settings (soundRate, blockSize, nOutChannels, nInChannels) must be specified. \
               Additionally, blockSize must be a multiple of 64");
     }
-    
+
     // shouldn't ever exit unless we explicitly call stop()
     sys_main([libdir UTF8String],
              [[externs componentsJoinedByString:@":"] UTF8String],
@@ -125,27 +131,32 @@ static PdController *sharedSingleton = nil;
 }
 
     
--(void)start
+- (void)start
 {
-    @synchronized(self) {
-        if (![pdThread isExecuting]) {
+    @synchronized(self)
+    {
+        if (![pdThread isExecuting])
+        {
             [pdThread start];
         }        
     }
 }
     
--(void)stop
+- (void)stop
 {
-    @synchronized(self) {
-        if ([pdThread isExecuting]) {
+    @synchronized(self)
+    {
+        if ([pdThread isExecuting])
+        {
             sys_exit(); 
         }        
     }
 }
 
--(void)restart
+- (void)restart
 {
-    @synchronized(self) {
+    @synchronized(self)
+    {
         [self stop];
         
         // TODO: May not be necessary. But [self stop] is asynchronous, 
@@ -156,10 +167,99 @@ static PdController *sharedSingleton = nil;
     }
 }
 
-- (id) init
+- (OSStatus)startBounce:(NSString *)inRecordFile
+{
+    AudioStreamBasicDescription audioFormat = {0};
+    OSStatus status;
+
+    file = [inRecordFile copy];
+    CFURLRef fileURL = CFURLCreateWithFileSystemPath(NULL, (CFStringRef)inRecordFile, kCFURLPOSIXPathStyle, false);
+
+    audioFormat.mSampleRate         = kDefaultSoundRate;
+    audioFormat.mFormatID           = kAudioFormatLinearPCM;
+    audioFormat.mFormatFlags        = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
+    audioFormat.mChannelsPerFrame   = 2;    // set to stereo
+    audioFormat.mFramesPerPacket    = 1;
+    audioFormat.mBitsPerChannel     = 16;
+    audioFormat.mBytesPerFrame      = 2 * audioFormat.mChannelsPerFrame;
+    audioFormat.mBytesPerPacket     = 2 * audioFormat.mChannelsPerFrame;
+
+    status = AudioFileCreateWithURL(fileURL, kAudioFileWAVEType, &audioFormat, kAudioFileFlags_EraseFile, &audioFileID);
+    CFRelease(fileURL);
+    if (status)
+    {
+        fprintf(stderr, "AudioFileCreateWithURL failure\n");
+        return status;
+    }
+
+    status = ExtAudioFileWrapAudioFileID(audioFileID, YES, &audiofile);
+    if (status)
+    {
+        fprintf(stderr, "ExtAudioFileWrapAudioFileID failure\n");
+        return status;
+    }
+
+    ExtAudioFileSetProperty(audiofile, kExtAudioFileProperty_ClientDataFormat, sizeof(audioFormat), &audioFormat);
+    status = ExtAudioFileWriteAsync(audiofile, 0, NULL);
+    if (status)
+    {
+        fprintf(stderr, "ExtAudioFileWriteAsync failure\n");
+        return status;
+    }
+    
+    sys_setfile(audioFileID, audiofile);
+    sys_bounce(1);
+    
+    return status;
+}
+
+- (void)stopBounce
+{
+    sys_bounce(2);
+    OSStatus status = ExtAudioFileDispose(audiofile);
+    if (status)
+    {
+        fprintf(stderr, "ExtAudioFileDispose failure\n");
+        return;
+    }
+
+    status = AudioFileClose(audioFileID);
+    if (status)
+    {
+        fprintf(stderr, "AudioFileClose failure\n");
+        return;
+    }
+    if (delegate)
+    {
+        [delegate bounceStopped:file];
+    }
+}
+
+- (void)endBounce
+{
+    sys_bounce(0);
+}
+
+- (void)sendMsg:(const char *)msg len:(size_t)len
+{
+    sys_msgadd_send(msg, len);
+}
+
+- (int)recvReady
+{
+    return sys_msg_recv_empty();
+}
+
+- (void)recvMsg:(char **)data len:(size_t *)len
+{
+    sys_msgget_recv(data, len);
+}
+
+- (id)init
 {
     self = [super init];
-    if (self != nil) {
+    if (self != nil)
+    {
         pdThread = [[NSThread alloc] initWithTarget:self 
                                            selector:@selector(pdThreadMain)
                                              object:nil];
@@ -176,15 +276,15 @@ static PdController *sharedSingleton = nil;
     return self;
 }
 
-- (void) dealloc
+- (void)dealloc
 {
     [self stop];
     [pdThread release];
     [externs release];
     [openfiles release];
     [libdir release];
+    [file release];
     [super dealloc];
 }
-
 
 @end

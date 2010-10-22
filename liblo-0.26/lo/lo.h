@@ -78,6 +78,12 @@ lo_address lo_address_new_with_proto(int proto, const char *host, const char *po
  */
 lo_address lo_address_new_from_url(const char *url);
 
+
+/**
+ * \brief Create a lo_address object to send data via a handler.
+ */
+lo_address lo_address_direct_new(lo_send_handler h);
+
 /**
  * \brief Free the memory used by the lo_address object
  */ 
@@ -239,6 +245,14 @@ lo_server_thread lo_server_thread_new_multicast(const char *group, const char *p
  */
 lo_server_thread lo_server_thread_new_with_proto(const char *port, int proto,
 				   lo_err_handler err_h);
+
+
+/**
+ * \brief Create a new server thread to handle direct incoming OSC
+ * messages.
+ */
+lo_server_thread lo_server_thread_direct_new(lo_recvready_handler ready, lo_recv_handler h, lo_err_handler err_h);
+
 
 /**
  * \brief Free memory taken by a server thread

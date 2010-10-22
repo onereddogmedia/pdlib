@@ -491,7 +491,7 @@ size_t lo_arg_size(lo_type type, void *data)
 	return lo_blobsize((lo_blob)data);
 
     default:
-	fprintf(stderr, "liblo warning: unhandled OSC type '%c' at %s:%d\n", type, __FILE__, __LINE__);
+	fprintf(stderr, "liblo warning: unhandled OSC type '%c' at %d\n", type, __LINE__);
 	return 0;
     }
 
@@ -664,8 +664,7 @@ void lo_arg_host_endian(lo_type type, void *data)
 	break;
 
     default:
-	fprintf(stderr, "liblo warning: unhandled OSC type '%c' at %s:%d\n",
-		type, __FILE__, __LINE__);
+	fprintf(stderr, "liblo warning: unhandled OSC type '%c' at %d\n", type, __LINE__);
 	break;
     }
 }
@@ -698,8 +697,7 @@ void lo_arg_network_endian(lo_type type, void *data)
         break;
 
     default:
-        fprintf(stderr, "liblo warning: unhandled OSC type '%c' at %s:%d\n",
-                type, __FILE__, __LINE__);
+        fprintf(stderr, "liblo warning: unhandled OSC type '%c' at %d\n", type, __LINE__);
         break;
     }
 }
@@ -1069,7 +1067,7 @@ lo_hires lo_hires_val(lo_type type, lo_arg *p)
     case LO_DOUBLE:
 	return p->d;
     default:
-	fprintf(stderr, "liblo: hires val requested of non numerical type '%c' at %s:%d\n", type, __FILE__, __LINE__);
+	fprintf(stderr, "liblo: hires val requested of non numerical type '%c' at %d\n", type, __LINE__);
 	break;
     }
 

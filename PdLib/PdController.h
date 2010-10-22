@@ -33,12 +33,18 @@
 #import <Foundation/Foundation.h>
 #import "AudioOutput.h"
 
+@protocol PdControllerDelegate
+- (void)bounceStopped:(NSString *)file;
+@end
+
+
 // This is a somewhat malformed singleton.
 // First set externs, openfiles, and libdir to the desired values BEFORE
 // calling "start" on PdController. Any changes to these properties 
 // after starting will not be reflected until PD is either stopped or restarted.
 
-@interface PdController : NSObject {
+@interface PdController : NSObject
+{
 @private
     NSThread        *pdThread;
     NSArray         *externs;
@@ -50,13 +56,25 @@
     NSInteger       nOutChannels; // 1 or 2: If we want mono or stereo out.
     NSInteger       nInChannels; // 1 or 2: mono / stereo mic
     AudioCallbackFn callbackFn; // Function to call back for every DSP tick. Called BEFORE DSP rendering
+
+    AudioFileID     audioFileID;
+    ExtAudioFileRef audiofile;
+    NSString        *file;
+
+    id<PdControllerDelegate> delegate;
 }
 
-+ (PdController*)sharedController;
--(int)openFile:(NSString*)path;
--(void)start;
--(void)restart;
--(void)stop;
++ (PdController *)sharedController;
+- (int)openFile:(NSString *)path;
+- (void)start;
+- (void)restart;
+- (void)stop;
+- (OSStatus)startBounce:(NSString *)inRecordFile;
+- (void)stopBounce;
+- (void)endBounce;
+- (void)sendMsg:(const char *)msg len:(size_t)len;
+- (int)recvReady;
+- (void)recvMsg:(char **)data len:(size_t *)len;
 
 @property (nonatomic, copy) NSArray *externs;
 @property (nonatomic, copy) NSArray *openfiles;
@@ -66,4 +84,7 @@
 @property (nonatomic, assign) NSInteger nOutChannels;
 @property (nonatomic, assign) NSInteger nInChannels;
 @property (nonatomic, assign) AudioCallbackFn callbackFn;
+@property (nonatomic, assign) AudioFileID audioFileID;
+@property (nonatomic, assign) ExtAudioFileRef audiofile;
+@property (nonatomic, assign) id<PdControllerDelegate> delegate;
 @end

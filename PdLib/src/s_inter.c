@@ -9,6 +9,7 @@ that didn't really belong anywhere. */
 #include "s_stuff.h"
 #include "m_imp.h"
 #include "g_canvas.h"   /* for GUI queueing stuff */
+#include "queue.h"
 #ifndef MSW
 #include <unistd.h>
 #include <sys/socket.h>
@@ -47,6 +48,7 @@ typedef int socklen_t;
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <pthread.h>
+#include <mach/mach_time.h>
 #else
 #include <stdlib.h>
 #endif
@@ -104,7 +106,7 @@ extern int sys_addhist(int phase);
 
 #ifdef MSW
 static LARGE_INTEGER nt_inittime;
-static double nt_freq = 0;
+static float32_pd nt_freq = 0;
 
 static void sys_initntclock(void)
 {
@@ -125,34 +127,44 @@ static void sys_initntclock(void)
     call yourself.  Necessary for time tagging incoming MIDI at interrupt
     level, for instance; but we're not doing that just now. */
 
-double nt_tixtotime(LARGE_INTEGER *dumbass)
+float32_pd nt_tixtotime(LARGE_INTEGER *dumbass)
 {
     if (nt_freq == 0) sys_initntclock();
-    return (((double)(dumbass->QuadPart - nt_inittime.QuadPart)) / nt_freq);
+    return (((float32_pd)(dumbass->QuadPart - nt_inittime.QuadPart)) / nt_freq);
 }
 #endif
 #endif /* MSW */
 
     /* get "real time" in seconds; take the
     first time we get called as a reference time of zero. */
-double sys_getrealtime(void)    
+float32_pd sys_getrealtime(void)    
 {
-#ifndef MSW
+#ifdef __APPLE__
+    mach_timebase_info_data_t info;
+    mach_timebase_info(&info);
+    uint64_t nanos = mach_absolute_time();
+    nanos *= info.numer;
+    nanos /= info.denom;
+
+    return nanos * 0.000000001;
+#elif !defined(MSW)
     static struct timeval then;
     struct timeval now;
     gettimeofday(&now, 0);
     if (then.tv_sec == 0 && then.tv_usec == 0) then = now;
     return ((now.tv_sec - then.tv_sec) +
-        (1./1000000.) * (now.tv_usec - then.tv_usec));
+        (1.0f/1000000.0f) * (now.tv_usec - then.tv_usec));
+
 #else
     LARGE_INTEGER now;
     QueryPerformanceCounter(&now);
     if (nt_freq == 0) sys_initntclock();
-    return (((double)(now.QuadPart - nt_inittime.QuadPart)) / nt_freq);
+    return (((float32_pd)(now.QuadPart - nt_inittime.QuadPart)) / nt_freq);
 #endif
 }
 
 extern int sys_nosleep;
+extern struct msg_list* msg_queue_recv;
 
 static int sys_domicrosleep(int microsec, int pollem)
 {
@@ -163,29 +175,60 @@ static int sys_domicrosleep(int microsec, int pollem)
     timout.tv_usec = (sys_nosleep ? 0 : microsec);
     if (pollem)
     {
-        fd_set readset, writeset, exceptset;
-        FD_ZERO(&writeset);
-        FD_ZERO(&readset);
-        FD_ZERO(&exceptset);
-        for (fp = sys_fdpoll, i = sys_nfdpoll; i--; fp++)
-            FD_SET(fp->fdp_fd, &readset);
-#ifdef MSW
-        if (sys_maxfd == 0)
-                Sleep(microsec/1000);
-        else
-#endif
-        select(sys_maxfd+1, &readset, &writeset, &exceptset, &timout);
-        for (i = 0; i < sys_nfdpoll; i++)
-            if (FD_ISSET(sys_fdpoll[i].fdp_fd, &readset))
+        // peterj: consume the message queue if not empty
+        if (NULL != msg_queue_recv->head && NULL != msg_queue_recv->tail)
         {
+            while (NULL != msg_queue_recv->head && NULL != msg_queue_recv->tail)
+            {
+                for (i = 0; i < sys_nfdpoll; i++)
+                {
+                    if (sys_fdpoll[i].fdp_fd == -1)
+                    {
 #ifdef THREAD_LOCKING
-            sys_lock();
+                        sys_lock();
 #endif
-            (*sys_fdpoll[i].fdp_fn)(sys_fdpoll[i].fdp_ptr, sys_fdpoll[i].fdp_fd);
+                        (*sys_fdpoll[i].fdp_fn)(sys_fdpoll[i].fdp_ptr, msg_queue_recv->head);
+                        list_remove_element(msg_queue_recv);
 #ifdef THREAD_LOCKING
-            sys_unlock();
+                        sys_unlock();
 #endif
-            didsomething = 1;
+                        didsomething = 1;
+                    }
+                }
+            }
+        }
+        else
+        {
+            fd_set readset, writeset, exceptset;
+            FD_ZERO(&writeset);
+            FD_ZERO(&readset);
+            FD_ZERO(&exceptset);
+            for (fp = sys_fdpoll, i = sys_nfdpoll; i--; fp++)
+            {
+                if (fp->fdp_fd == -1) continue;     // our special FD
+                FD_SET(fp->fdp_fd, &readset);
+            }
+#ifdef MSW
+            if (sys_maxfd == 0)
+                    Sleep(microsec/1000);
+            else
+#endif
+            select(sys_maxfd+1, &readset, &writeset, &exceptset, &timout);
+            for (i = 0; i < sys_nfdpoll; i++)
+            {
+                if (sys_fdpoll[i].fdp_fd == -1) continue;     // our special FD
+                if (FD_ISSET(sys_fdpoll[i].fdp_fd, &readset))
+                {
+#ifdef THREAD_LOCKING
+                    sys_lock();
+#endif
+                    (*sys_fdpoll[i].fdp_fn)(sys_fdpoll[i].fdp_ptr, sys_fdpoll[i].fdp_fd);
+#ifdef THREAD_LOCKING
+                    sys_unlock();
+#endif
+                    didsomething = 1;
+                }
+            }
         }
         return (didsomething);
     }

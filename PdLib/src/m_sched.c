@@ -13,7 +13,7 @@
 
     /* LATER consider making this variable.  It's now the LCM of all sample
     rates we expect to see: 32000, 44100, 48000, 88200, 96000. */
-#define TIMEUNITPERSEC (32.*441000.)
+#define TIMEUNITPERSEC (32.0f*441000.0f)
 
 #define THREAD_LOCKING  
 #include "pthread.h"
@@ -21,8 +21,8 @@
 #define SYS_QUIT_QUIT 1
 #define SYS_QUIT_RESTART 2
 static int sys_quit;
-double sys_time;
-static double sys_time_per_msec = TIMEUNITPERSEC / 1000.;
+float32_pd sys_time;
+static float32_pd sys_time_per_msec = TIMEUNITPERSEC / 1000.0f;
 
 int sys_schedadvance = 50;
 int sys_usecsincelastsleep(void);
@@ -37,7 +37,7 @@ typedef void (*t_clockmethod)(void *client);
 
 struct _clock
 {
-    double c_settime;
+    float32_pd c_settime;
     void *c_owner;
     t_clockmethod c_fn;
     struct _clock *c_next;
@@ -75,7 +75,7 @@ void clock_unset(t_clock *x)
 }
 
     /* set the clock to call back at an absolute system time */
-void clock_set(t_clock *x, double setticks)
+void clock_set(t_clock *x, float32_pd setticks)
 {
     if (setticks < sys_time) setticks = sys_time;
     clock_unset(x);
@@ -98,7 +98,7 @@ void clock_set(t_clock *x, double setticks)
 }
 
     /* set the clock to call back after a delay in msec */
-void clock_delay(t_clock *x, double delaytime)
+void clock_delay(t_clock *x, float32_pd delaytime)
 {
     clock_set(x, sys_time + sys_time_per_msec * delaytime);
 }
@@ -107,21 +107,21 @@ void clock_delay(t_clock *x, double delaytime)
     use clock_gettimesince() to measure intervals from time of this call. 
     This was previously, incorrectly named "clock_getsystime"; the old
     name is aliased to the new one in m_pd.h. */
-double clock_getlogicaltime( void)
+float32_pd clock_getlogicaltime( void)
 {
     return (sys_time);
 }
     /* OBSOLETE NAME */
-double clock_getsystime( void) { return (sys_time); }
+float32_pd clock_getsystime( void) { return (sys_time); }
 
     /* elapsed time in milliseconds since the given system time */
-double clock_gettimesince(double prevsystime)
+float32_pd clock_gettimesince(float32_pd prevsystime)
 {
     return ((sys_time - prevsystime)/sys_time_per_msec);
 }
 
     /* what value the system clock will have after a delay */
-double clock_getsystimeafter(double delaytime)
+float32_pd clock_getsystimeafter(float32_pd delaytime)
 {
     return (sys_time + sys_time_per_msec * delaytime);
 }
@@ -139,7 +139,7 @@ static int sys_bin[] = {0, 2, 5, 10, 20, 30, 50, 100, 1000};
 #define NBIN (sizeof(sys_bin)/sizeof(*sys_bin))
 #define NHIST 10
 static int sys_histogram[NHIST][NBIN];
-static double sys_histtime;
+static float32_pd sys_histtime;
 static int sched_diddsp, sched_didpoll, sched_didnothing;
 
 void sys_clearhist( void)
@@ -180,7 +180,7 @@ static int sys_histphase;
 int sys_addhist(int phase)
 {
     int i, j, phasewas = sys_histphase;
-    double newtime = sys_getrealtime();
+    float32_pd newtime = sys_getrealtime();
     int msec = (newtime - sys_histtime) * 1000.;
     for (j = NBIN-1; j >= 0; j--)
     {
@@ -234,7 +234,7 @@ void glob_audiostatus(void)
         
         post("%9.2f\t%s",
             (sched_diddsp - oss_resync[nresyncphase].r_ntick)
-                * ((double)sys_schedblocksize) / sys_dacsr,
+                * ((float32_pd)sys_schedblocksize) / sys_dacsr,
             oss_errornames[errtype]);
         nresyncphase--;
     }
@@ -257,7 +257,7 @@ void sys_log_error(int type)
         sched_diored = 1;
     }
     sched_dioredtime =
-        sched_diddsp + (int)(sys_dacsr /(double)sys_schedblocksize);
+        sched_diddsp + (int)(sys_dacsr /(float32_pd)sys_schedblocksize);
 }
 
 static int sched_lastinclip, sched_lastoutclip,
@@ -278,7 +278,7 @@ static void sched_pollformeters( void)
         glob_watchdog(0);
             /* ping every 2 seconds */
         sched_nextpingtime = sched_diddsp +
-            2 * (int)(sys_dacsr /(double)sys_schedblocksize);
+            2 * (int)(sys_dacsr /(float32_pd)sys_schedblocksize);
     }
 #endif
 
@@ -313,7 +313,7 @@ static void sched_pollformeters( void)
         sched_lastoutdb = outdb;
     }
     sched_nextmeterpolltime =
-        sched_diddsp + (int)(sys_dacsr /(double)sys_schedblocksize);
+        sched_diddsp + (int)(sys_dacsr /(float32_pd)sys_schedblocksize);
 }
 
 void glob_meters(void *dummy, t_float f)
@@ -336,8 +336,8 @@ void glob_foo(void *dummy, t_symbol *s, int argc, t_atom *argv)
 void dsp_tick(void);
 
 static int sched_useaudio = SCHED_AUDIO_POLL;
-static double sched_referencerealtime, sched_referencelogicaltime;
-double sys_time_per_dsp_tick;
+static float32_pd sched_referencerealtime, sched_referencelogicaltime;
+float32_pd sys_time_per_dsp_tick;
 
 void sched_set_using_audio(int flag)
 {
@@ -356,11 +356,11 @@ void sched_set_using_audio(int flag)
                     /* not right yet! */
         
     sys_time_per_dsp_tick = (TIMEUNITPERSEC) *
-        ((double)sys_schedblocksize) / sys_dacsr;
+        ((float32_pd)sys_schedblocksize) / sys_dacsr;
 }
 
     /* take the scheduler forward one DSP tick, also handling clock timeouts */
-void sched_tick(double next_sys_time)
+void sched_tick(float32_pd next_sys_time)
 {
     int countdown = 5000;
     while (clock_setlist && clock_setlist->c_settime < next_sys_time)
@@ -406,7 +406,7 @@ static void m_pollingscheduler( void)
 {
     int idlecount = 0;
     sys_time_per_dsp_tick = (TIMEUNITPERSEC) *
-        ((double)sys_schedblocksize) / sys_dacsr;
+        ((float32_pd)sys_schedblocksize) / sys_dacsr;
 
 #ifdef THREAD_LOCKING
         sys_lock();
@@ -449,7 +449,7 @@ static void m_pollingscheduler( void)
                 idlecount++;
                 if (!(idlecount & 31))
                 {
-                    static double idletime;
+                    static float32_pd idletime;
                     if (sched_useaudio != SCHED_AUDIO_POLL)
                     {
                             bug("m_pollingscheduler\n");
@@ -570,7 +570,7 @@ int m_mainloop(void)
 int m_batchmain(void)
 {
     sys_time_per_dsp_tick = (TIMEUNITPERSEC) *
-        ((double)sys_schedblocksize) / sys_dacsr;
+        ((float32_pd)sys_schedblocksize) / sys_dacsr;
     while (sys_quit != SYS_QUIT_QUIT)
         sched_tick(sys_time + sys_time_per_dsp_tick);
     return (0);

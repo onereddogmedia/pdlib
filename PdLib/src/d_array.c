@@ -396,7 +396,7 @@ static t_int *tabread4_tilde_perform(t_int *w)
     int n = (int)(w[4]);    
     int maxindex;
     t_word *buf = x->x_vec, *wp;
-    double onset = x->x_onset;
+    float32_pd onset = x->x_onset;
     int i;
     
     maxindex = x->x_npoints - 3;
@@ -421,7 +421,7 @@ static t_int *tabread4_tilde_perform(t_int *w)
 
     for (i = 0; i < n; i++)
     {
-        double findex = *in++ + onset;
+        float32_pd findex = *in++ + onset;
         int index = findex;
         t_sample frac,  a,  b,  c,  d, cminusb;
         static int count;
@@ -554,7 +554,7 @@ typedef struct _tabosc4_tilde
     t_word *x_vec;
     t_symbol *x_arrayname;
     t_float x_f;
-    double x_phase;
+    float32_pd x_phase;
     t_float x_conv;
 } t_tabosc4_tilde;
 

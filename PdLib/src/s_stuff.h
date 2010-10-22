@@ -228,15 +228,15 @@ extern int sys_hasstarted;
 
 /* jsarlo { */
 
-EXTERN double sys_time;
-EXTERN double sys_time_per_dsp_tick;
+EXTERN float32_pd sys_time;
+EXTERN float32_pd sys_time_per_dsp_tick;
 EXTERN int sys_externalschedlib;
 
 EXTERN void sys_clearhist(void );
 //EXTERN void sys_initmidiqueue(void );
 EXTERN int sys_addhist(int phase);
-//EXTERN void sys_setmiditimediff(double inbuftime, double outbuftime);
-EXTERN void sched_tick(double next_sys_time);
+//EXTERN void sys_setmiditimediff(float32_pd inbuftime, float32_pd outbuftime);
+EXTERN void sched_tick(float32_pd next_sys_time);
 //EXTERN void sys_pollmidiqueue(void );
 EXTERN int sys_pollgui(void );
 //EXTERN void sys_setchsr(int chin, int chout, int sr);

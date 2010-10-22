@@ -33,6 +33,9 @@ typedef __int32 int32_t;
 #include "lo/lo_osc_types.h"
 
 typedef void (*lo_err_handler)(int num, const char *msg, const char *path);
+typedef void (*lo_send_handler)(const char *msg, const size_t len);
+typedef int (*lo_recvready_handler)();
+typedef void (*lo_recv_handler)(char** data, size_t* len);
 
 struct _lo_method;
 
@@ -45,6 +48,7 @@ typedef struct _lo_address {
 	int              errnum;
 	const char      *errstr;
 	int              ttl;
+    lo_send_handler send;
 } *lo_address;
 
 typedef struct _lo_blob {
@@ -95,6 +99,8 @@ typedef struct _lo_server {
 #else
 	struct { int fd; }   *sockets;
 #endif
+    lo_recvready_handler recv_ready;
+    lo_recv_handler      recv;
 } *lo_server;
 
 typedef struct _lo_server_thread {

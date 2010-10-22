@@ -567,7 +567,7 @@ static void midiclkin_setup(void)
     midiclkin_sym = gensym("#midiclkin");
 }
 
-void inmidi_clk(double timing)
+void inmidi_clk(float32_pd timing)
 {
 
     static t_float prev = 0;

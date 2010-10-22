@@ -1212,7 +1212,7 @@ static void canvas_done_popup(t_canvas *x, t_float which, t_float xpos, t_float 
 #define ALTMOD 4
 #define RIGHTCLICK 8
 
-static double canvas_upclicktime;
+static float32_pd canvas_upclicktime;
 static int canvas_upx, canvas_upy;
 #define DCLICKINTERVAL 0.25
 

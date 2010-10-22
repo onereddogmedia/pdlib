@@ -47,7 +47,7 @@ static void guiconnect_tick(t_guiconnect *x)
     /* the target calls this to disconnect.  If the gui has "signed off"
     we're ready to delete the object; otherwise we wait either for signoff
     or for a timeout. */
-void guiconnect_notarget(t_guiconnect *x, double timedelay)
+void guiconnect_notarget(t_guiconnect *x, float32_pd timedelay)
 {
     if (!x->x_sym)
         pd_free(&x->x_obj.ob_pd);

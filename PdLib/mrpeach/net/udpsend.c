@@ -123,10 +123,10 @@ static void udpsend_send(t_udpsend *x, t_symbol *s, int argc, t_atom *argv)
     char           *bp;
     int            length, sent;
     int            result;
-    static double  lastwarntime;
-    static double  pleasewarn;
-    double         timebefore;
-    double         timeafter;
+    static float32_pd lastwarntime;
+    static float32_pd pleasewarn;
+    float32_pd     timebefore;
+    float32_pd     timeafter;
     int            late;
     char           fpath[FILENAME_MAX];
     FILE           *fptr;

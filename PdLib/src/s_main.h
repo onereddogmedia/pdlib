@@ -52,4 +52,13 @@ void sys_exit(void);
 void sys_lock(void);
 void sys_unlock(void);
 
+void sys_bounce(int bounce);
+void sys_setfile(AudioFileID audioFileID, ExtAudioFileRef audiofile);
+
+void sys_msgadd_send(const char* msg, const size_t len);
+void sys_msgadd_recv(const char* msg, const size_t len);
+int sys_msg_recv_empty();
+void sys_msgget_recv(char** data, size_t* len);
+
+
 extern int sys_hasstarted;

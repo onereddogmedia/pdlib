@@ -65,6 +65,8 @@ typedef PD_LONGINTTYPE t_int;       /* pointer-size integer */
 typedef PD_FLOATTYPE t_float;       /* a float type at most the same size */
 typedef PD_FLOATTYPE t_floatarg;    /* float type for function calls */
 
+typedef double float32_pd;
+
 typedef struct _symbol
 {
     char *s_name;
@@ -307,13 +309,13 @@ EXTERN t_symbol *binbuf_realizedollsym(t_symbol *s, int ac, t_atom *av,
 /* ------------------  clocks --------------- */
 
 EXTERN t_clock *clock_new(void *owner, t_method fn);
-EXTERN void clock_set(t_clock *x, double systime);
-EXTERN void clock_delay(t_clock *x, double delaytime);
+EXTERN void clock_set(t_clock *x, float32_pd systime);
+EXTERN void clock_delay(t_clock *x, float32_pd delaytime);
 EXTERN void clock_unset(t_clock *x);
-EXTERN double clock_getlogicaltime(void);
-EXTERN double clock_getsystime(void); /* OBSOLETE; use clock_getlogicaltime() */
-EXTERN double clock_gettimesince(double prevsystime);
-EXTERN double clock_getsystimeafter(double delaytime);
+EXTERN float32_pd clock_getlogicaltime(void);
+EXTERN float32_pd clock_getsystime(void); /* OBSOLETE; use clock_getlogicaltime() */
+EXTERN float32_pd clock_gettimesince(float32_pd prevsystime);
+EXTERN float32_pd clock_getsystimeafter(float32_pd delaytime);
 EXTERN void clock_free(t_clock *x);
 
 /* ----------------- pure data ---------------- */
@@ -467,7 +469,7 @@ EXTERN void sys_unbashfilename(const char *from, char *to);
 EXTERN int open_via_path(const char *name, const char *ext, const char *dir,
     char *dirresult, char **nameresult, unsigned int size, int bin);
 EXTERN int sched_geteventno(void);
-EXTERN double sys_getrealtime(void);
+EXTERN float32_pd sys_getrealtime(void);
 EXTERN int (*sys_idlehook)(void);   /* hook to add idle time computation */
 
 

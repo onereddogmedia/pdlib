@@ -64,7 +64,7 @@ static t_class *phasor_class, *scalarphasor_class;
 typedef struct _phasor
 {
     t_object x_obj;
-    double x_phase;
+    float32_pd x_phase;
     float x_conv;
     float x_f;      /* scalar frequency */
 } t_phasor;
@@ -156,7 +156,7 @@ static t_int *cos_perform(t_int *w)
     t_float *out = (t_float *)(w[2]);
     int n = (int)(w[3]);
     float *tab = cos_table, *addr, f1, f2, frac;
-    double dphase;
+    float32_pd dphase;
     int normhipart;
     union tabfudge tf;
     
@@ -166,7 +166,7 @@ static t_int *cos_perform(t_int *w)
 #if 0           /* this is the readable version of the code. */
     while (n--)
     {
-        dphase = (double)(*in++ * (float)(COSTABSIZE)) + UNITBIT32;
+        dphase = (*in++ * (float)(COSTABSIZE)) + UNITBIT32;
         tf.tf_d = dphase;
         addr = tab + (tf.tf_i[HIOFFSET] & (COSTABSIZE-1));
         tf.tf_i[HIOFFSET] = normhipart;
@@ -177,13 +177,13 @@ static t_int *cos_perform(t_int *w)
     }
 #endif
 #if 1           /* this is the same, unwrapped by hand. */
-        dphase = (double)(*in++ * (float)(COSTABSIZE)) + UNITBIT32;
+        dphase = (*in++ * (float)(COSTABSIZE)) + UNITBIT32;
         tf.tf_d = dphase;
         addr = tab + (tf.tf_i[HIOFFSET] & (COSTABSIZE-1));
         tf.tf_i[HIOFFSET] = normhipart;
     while (--n)
     {
-        dphase = (double)(*in++ * (float)(COSTABSIZE)) + UNITBIT32;
+        dphase = (*in++ * (float)(COSTABSIZE)) + UNITBIT32;
             frac = tf.tf_d - UNITBIT32;
         tf.tf_d = dphase;
             f1 = addr[0];
@@ -215,7 +215,7 @@ static void cos_maketable(void)
     cos_table = (float *)getbytes(sizeof(float) * (COSTABSIZE+1));
     for (i = COSTABSIZE + 1, fp = cos_table, phase = 0; i--;
         fp++, phase += phsinc)
-            *fp = cos(phase);
+            *fp = cosf(phase);
 
         /* here we check at startup whether the byte alignment
             is as we declared it.  If not, the code has to be
@@ -241,7 +241,7 @@ static t_class *osc_class, *scalarosc_class;
 typedef struct _osc
 {
     t_object x_obj;
-    double x_phase;
+    float32_pd x_phase;
     float x_conv;
     float x_f;      /* frequency if scalar */
 } t_osc;
@@ -264,7 +264,7 @@ static t_int *osc_perform(t_int *w)
     t_float *out = (t_float *)(w[3]);
     int n = (int)(w[4]);
     float *tab = cos_table, *addr, f1, f2, frac;
-    double dphase = x->x_phase + UNITBIT32;
+    float32_pd dphase = x->x_phase + UNITBIT32;
     int normhipart;
     union tabfudge tf;
     float conv = x->x_conv;
@@ -394,7 +394,7 @@ static t_int *sigvcf_perform(t_int *w)
     float isr = c->c_isr;
     float coefr, coefi;
     float *tab = cos_table, *addr, f1, f2, frac;
-    double dphase;
+    float32_pd dphase;
     int normhipart, tabindex;
     union tabfudge tf;
     
@@ -410,7 +410,7 @@ static t_int *sigvcf_perform(t_int *w)
         r = (qinv > 0 ? 1 - cf * qinv : 0);
         if (r < 0) r = 0;
         oneminusr = 1.0f - r;
-        dphase = ((double)(cfindx)) + UNITBIT32;
+        dphase = cfindx + UNITBIT32;
         tf.tf_d = dphase;
         tabindex = tf.tf_i[HIOFFSET] & (COSTABSIZE-1);
         addr = tab + tabindex;
@@ -427,8 +427,7 @@ static t_int *sigvcf_perform(t_int *w)
 
         f1 = *in1++;
         re2 = re;
-        *out1++ = re = ampcorrect * oneminusr * f1 
-            + coefr * re2 - coefi * im;
+        *out1++ = re = ampcorrect * oneminusr * f1 + coefr * re2 - coefi * im;
         *out2++ = im = coefi * re2 + coefr * im;
     }
     if (PD_BIGORSMALL(re))

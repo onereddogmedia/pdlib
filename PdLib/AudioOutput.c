@@ -32,6 +32,7 @@
 #import "AudioOutput.h"
 #import "m_pd.h"
 #import "s_stuff.h"
+#include <mach/mach_time.h>
 
 #define MIN(a,b) ((a)>(b)?(b):(a))
 #define MAX(a,b) ((a)<(b)?(b):(a))
@@ -40,18 +41,20 @@
 
 static void interruptionListener(void *inClientData, UInt32 inInterruption)
 {
-    fprintf(stderr,"Session interrupted! %s, ", 
+    fprintf(stderr, "Session interrupted! %s, \n", 
             inInterruption == kAudioSessionBeginInterruption ? "Begin Interruption" : "End Interruption");
     
     AudioCallbackParams *params = (AudioCallbackParams*)inClientData;
     
-    if (inInterruption == kAudioSessionEndInterruption) {
+    if (inInterruption == kAudioSessionEndInterruption)
+    {
         // make sure we are again the active session
         AudioSessionSetActive(true);
         AudioOutputUnitStart(params->audioUnit);
     }
     
-    if (inInterruption == kAudioSessionBeginInterruption) {
+    if (inInterruption == kAudioSessionBeginInterruption)
+    {
         AudioSessionSetActive(false);
         AudioOutputUnitStop(params->audioUnit);
     }
@@ -65,16 +68,20 @@ static OSStatus renderCallback(void *inRefCon,
                              AudioBufferList *ioData)
 {
     //assert(inBusNumber == 0);
+#ifdef DEBUG
     assert(ioData->mNumberBuffers == 1);  // doing one callback, right?
     assert(sizeof(t_sample) == 4);  // assume 32-bit floats here
+#endif
 
     AudioCallbackParams *params = (AudioCallbackParams*)inRefCon;
     
     OSStatus err;
-    if (params->isMicAvailable) {
-        if ((err = AudioUnitRender(params->audioUnit, ioActionFlags, inTimeStamp, 
-                                   1, inNumberFrames, ioData))) {
-            printf("RenderCallback err %d\n",(int)err); return err;
+    if (params->isMicAvailable)
+    {
+        if ((err = AudioUnitRender(params->audioUnit, ioActionFlags, inTimeStamp, 1, inNumberFrames, ioData)))
+        {
+            fprintf(stderr, "RenderCallback err %d\n",(int)err);
+            return err;
         }
     }
     // sys_schedblocksize is How many frames we have per PD dsp_tick
@@ -83,7 +90,9 @@ static OSStatus renderCallback(void *inRefCon,
     // Make sure we're dealing with evenly divisible numbers between
     // the number of frames CoreAudio needs vs the block size for a given PD dsp tick.
     //Otherwise this looping scheme we're doing below doesn't make much sense.
+#ifdef DEBUG
     assert(inNumberFrames % sys_schedblocksize == 0);
+#endif
 
     // How many times to generate a DSP event in PD
     UInt32 times = inNumberFrames / sys_schedblocksize;
@@ -91,18 +100,21 @@ static OSStatus renderCallback(void *inRefCon,
     AudioBuffer *buffer = &ioData->mBuffers[0];
     SInt16 *data = (SInt16*) buffer->mData;
 
-    for(UInt32 i = 0; i < times; i++) {
-        
-        if (params->isMicAvailable) {
+    for (UInt32 i = 0; i < times; i++)
+    {
+        if (params->isMicAvailable)
+        {
             // Converts non-interleaved mic data into interleaved PD format
-            for (int n = 0; n < sys_schedblocksize; n++) {
-                for(int ch = 0; ch < sys_ninchannels; ch++) {
+            for (int n = 0; n < sys_schedblocksize; n++)
+            {
+                for (int ch = 0; ch < sys_ninchannels; ch++)
+                {
                     float sample = CLAMP(
-                        (SInt16)data[(n*sys_ninchannels+ch) + // offset in iteration
-                                     i*sys_schedblocksize*sys_ninchannels] // iteration starting address
-                                     /SINT16_MAX
-                        ,-1,1);
-                    sys_soundin[n+sys_schedblocksize*ch] = sample;
+                        (SInt16)data[(n * sys_ninchannels + ch) + // offset in iteration
+                                     i * sys_schedblocksize * sys_ninchannels] // iteration starting address
+                                     / SINT16_MAX
+                        , -1, 1);
+                    sys_soundin[n + sys_schedblocksize * ch] = sample;
                 }        
             }            
         }
@@ -113,35 +125,59 @@ static OSStatus renderCallback(void *inRefCon,
                 
         // This should cover sys_noutchannels channels. Turns non-interleaved into 
         // interleaved audio.
-        for (int n = 0; n < sys_schedblocksize; n++) {
-            for(int ch = 0; ch < sys_noutchannels; ch++) {
-                t_sample fsample = CLAMP(sys_soundout[n+sys_schedblocksize*ch],-1,1);
-                SInt16 sample = (SInt16)(fsample * 32767.0);
-                data[(n*sys_noutchannels+ch) + // offset in iteration
-                     i*sys_schedblocksize*sys_noutchannels] // iteration starting address
+        for (int n = 0; n < sys_schedblocksize; n++)
+        {
+            for (int ch = 0; ch < sys_noutchannels; ch++)
+            {
+                t_sample fsample = CLAMP(sys_soundout[n + sys_schedblocksize * ch], -1, 1);
+                SInt16 sample = (SInt16)(fsample * 32767.0f);
+                data[(n * sys_noutchannels + ch) + // offset in iteration
+                     i * sys_schedblocksize * sys_noutchannels] // iteration starting address
                 = sample;
             }        
         }
-        
+
         // After loading the samples, we need to clear them for the next iteration
-        memset(sys_soundout, 0, sizeof(t_sample)*sys_noutchannels*sys_schedblocksize);        
+        memset(sys_soundout, 0, sizeof(t_sample) * sys_noutchannels * sys_schedblocksize);        
+    }
+
+    if (params->bounce == 1)
+    {
+        err = ExtAudioFileWriteAsync(params->audiofile, inNumberFrames, ioData);
+        if (err)
+        {
+            fprintf(stderr, "ExtAudioFileWriteAsync failure\n");
+            return err;
+        }
+        
+        // don't output during bounce as it's not a "true" bounce but more a real-time record
+        memset(data, 0, ioData->mBuffers[0].mDataByteSize);
+    }
+    else if (params->bounce == 2)
+    {
+        // don't output during bounce as it's not a "true" bounce but more a real-time record
+        memset(data, 0, ioData->mBuffers[0].mDataByteSize);
     }
 
     return noErr;
 }
+
+
 
 OSStatus AudioOutputInitialize(AudioCallbackParams *params)
 {    
     // Initialize Audio session
     OSStatus status;
     
-    if ((status = AudioSessionInitialize(NULL, NULL, interruptionListener, params))) {
-        fprintf(stderr,"couldn't initialize audio session");
+    if ((status = AudioSessionInitialize(NULL, NULL, interruptionListener, params)))
+    {
+        fprintf(stderr, "couldn't initialize audio session\n");
         return status;
     }
         
-    if ((status = AudioSessionSetActive(true))) {
-        fprintf(stderr,"couldn't set active audio session");
+    if ((status = AudioSessionSetActive(true)))
+    {
+        fprintf(stderr,"couldn't set active audio session\n");
         return status;
     }
     
@@ -149,8 +185,9 @@ OSStatus AudioOutputInitialize(AudioCallbackParams *params)
     
     if ((status = AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, 
                                           sizeof(audioCategory), 
-                                          &audioCategory))) {
-        fprintf(stderr,"couldn't set up audio category");
+                                          &audioCategory)))
+    {
+        fprintf(stderr, "couldn't set up audio category\n");
         return status;
     }
     // Now set output format
@@ -179,15 +216,17 @@ OSStatus AudioOutputInitialize(AudioCallbackParams *params)
     
     // Get component
     AudioComponent outputComponent = AudioComponentFindNext(NULL, &desc);
-    if (outputComponent == NULL) {
-        fprintf(stderr,"AudioComponentFindNext failed");
+    if (outputComponent == NULL)
+    {
+        fprintf(stderr, "AudioComponentFindNext failed\n");
         return status;
     }
     
     // Get audio units
     status = AudioComponentInstanceNew(outputComponent, &params->audioUnit);
-    if (status) {
-        fprintf(stderr,"AudioComponentInstanceNew failed");
+    if (status)
+    {
+        fprintf(stderr, "AudioComponentInstanceNew failed\n");
         return status;
     }
   
@@ -209,8 +248,9 @@ OSStatus AudioOutputInitialize(AudioCallbackParams *params)
                                   1,
                                   &enableIO,
                                   sizeof(UInt32));
-    if (status) {
-        fprintf(stderr,"AudioUnitSetProperty EnableIO (out)");
+    if (status)
+    {
+        fprintf(stderr, "AudioUnitSetProperty EnableIO (out)\n");
         return status;
     }
     
@@ -221,8 +261,9 @@ OSStatus AudioOutputInitialize(AudioCallbackParams *params)
                                   0,
                                   &outputFormat,
                                   sizeof(AudioStreamBasicDescription));
-    if (status) {
-        fprintf(stderr,"AudioUnitSetProperty StreamFormat");
+    if (status)
+    {
+        fprintf(stderr, "AudioUnitSetProperty StreamFormat\n");
         return status;
     }
 
@@ -233,8 +274,9 @@ OSStatus AudioOutputInitialize(AudioCallbackParams *params)
                                   1,
                                   &outputFormat,
                                   sizeof(AudioStreamBasicDescription));
-    if (status) {
-        fprintf(stderr,"AudioUnitSetProperty StreamFormat");
+    if (status)
+    {
+        fprintf(stderr, "AudioUnitSetProperty StreamFormat\n");
         return status;
     }
     
@@ -249,29 +291,33 @@ OSStatus AudioOutputInitialize(AudioCallbackParams *params)
                                   0,
                                   &callback,
                                   sizeof(AURenderCallbackStruct));
-    if (status) {
-        fprintf(stderr,"AudioUnitSetProperty SetRenderCallback");
+    if (status)
+    {
+        fprintf(stderr, "AudioUnitSetProperty SetRenderCallback\n");
         return status;
     }
-    
+
     // is microphone available? iPod touch doesn't have one
     UInt32 sizePtr = sizeof(UInt32);
     if ((status = AudioSessionGetProperty(kAudioSessionProperty_AudioInputAvailable,
                              &sizePtr, 
-                             &params->isMicAvailable))) {  // A nonzero value on output means available
-        fprintf(stderr,"Couldn't get micAvailable setting");
+                             &params->isMicAvailable)))  // A nonzero value on output means available
+    {
+        fprintf(stderr, "Couldn't get micAvailable setting\n");
         return status;
     }
     
     status = AudioUnitInitialize(params->audioUnit);
-    if (status) {
-        fprintf(stderr,"AudioUnitInitialize failure");
+    if (status)
+    {
+        fprintf(stderr, "AudioUnitInitialize failure\n");
         return status;
     }  
     
     status = AudioOutputUnitStart(params->audioUnit);
-    if (status) {
-        fprintf(stderr,"AudioOutputUnitStart failure");
+    if (status)
+    {
+        fprintf(stderr, "AudioOutputUnitStart failure\n");
         return status;
     }
     
