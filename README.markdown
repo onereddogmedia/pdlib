@@ -15,7 +15,7 @@ Pd NEON
 
 Inside the Pd DSP code there are many "perf8" functions which act on vectors of data, in Pd's case
 these are C arrays. To gain more performance on low power devices like the iPad's ARM these
-functions are ripe for vectorisation. In desktop versionsof Pd over time people have converted
+functions are ripe for vectorisation. In desktop versions of Pd, over time people have converted
 the generic C code into PowerPC AltiVec and Intel SSE. Adding some NEON code here made the Pd a 
 lot more performant and meant I could run multiple synthesizer voices and effects in my iPad app.
 
